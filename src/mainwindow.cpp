@@ -4711,40 +4711,40 @@ void MainWindow::SendInjection(EcuItem* ecuitem)
 
     /* prepare payload of data */
     if(true == injectionDataBinary)
-        {
-            hexData = QByteArray::fromHex(injectionData.toLatin1());
-            size = hexData.size();
-        }
+    {
+        hexData = QByteArray::fromHex(injectionData.toLatin1());
+        size = hexData.size();
+    }
     else
-        {
-            size = (injectionData.toUtf8().size() );
-        }
+    {
+        size = (injectionData.toUtf8().size() + 1);
+    }
 
     msg.datasize = 4 + 4 + size;
 
     if (msg.databuffer)
-       {
-            free(msg.databuffer);
-       }
+    {
+        free(msg.databuffer);
+    }
     msg.databuffer = (uint8_t *) malloc(msg.datasize);
 
     if (NULL == msg.databuffer)
-        {
-            qDebug() << "Error could not allocate memory for msg data buffer" << "LINE" << __LINE__ << __FILE__;
-            return;
-        }
+    {
+        qDebug() << "Error could not allocate memory for msg data buffer" << "LINE" << __LINE__ << __FILE__;
+        return;
+    }
 
     memcpy(msg.databuffer  , &serviceID,sizeof(serviceID));
     memcpy(msg.databuffer+4, &size, sizeof(size));
 
     if(true == injectionDataBinary)
-        {
-            memcpy(msg.databuffer+8,hexData.data(),hexData.size());
-        }
+    {
+        memcpy(msg.databuffer+8,hexData.data(),hexData.size());
+    }
     else
-        {
-            memcpy(msg.databuffer+8, injectionData.toUtf8(), size);
-        }
+    {
+        memcpy(msg.databuffer+8, injectionData.toUtf8(), size);
+    }
 
     qDebug() << "Send" << injectionData.toUtf8() << "of size" << size << "string:" << injectionData.toUtf8() <<  "size" << injectionData.toUtf8().size();// << "LINE" << __LINE__;
 
