@@ -575,7 +575,7 @@ bool NonverbosePlugin::decodeMsg(QDltMsg &msg, int triggeredByUser)
                 argument.setTypeInfo(QDltArgument::DltTypeInfoStrg);
                 argument.setEndianness(msg.getEndianness());
                 argument.setOffsetPayload(offset);
-                data.append(pdu->description);
+                data.append(pdu->description.toStdString().c_str());
                 argument.setData(data);
             }
             else {

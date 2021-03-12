@@ -22,6 +22,7 @@
 #include <QMessageBox>
 #include <QCloseEvent>
 #include "dltuiutils.h"
+#include <QRegularExpression>
 
 FilterDialog::FilterDialog(QWidget *parent) :
     QDialog(parent),
@@ -286,7 +287,7 @@ void FilterDialog::setFilterColour(QColor color)
    QPalette palette = ui->labelSelectedColor->palette();
    palette.setColor(QPalette::Active,this->backgroundRole(),color);
    palette.setColor(QPalette::Inactive,this->backgroundRole(),QColor(255,255,255,255));
-   palette.setColor(QPalette::Foreground,DltUiUtils::optimalTextColor(color));
+   palette.setColor(QPalette::WindowText,DltUiUtils::optimalTextColor(color));
    ui->labelSelectedColor->setPalette(palette);
 
 }
@@ -497,7 +498,7 @@ void FilterDialog::validate()
         return;
     }
 
-    QRegExp rx;
+    QRegularExpression rx;
     rx.setPattern(getPayloadText());
     if(!rx.isValid()) {
         QMessageBox::warning(this, "Warning", error.arg("PAYLOAD").arg(rx.pattern()).arg(rx.errorString()));

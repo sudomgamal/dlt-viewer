@@ -6534,7 +6534,7 @@ void MainWindow::filterUpdate()
             if(false == filter->compileRegexps())
             {
                 // This is also validated in the UI part
-                qDebug() << "Error compiling a regexp" << endl << "in" << __FILE__ << __LINE__;
+                qDebug() << "Error compiling a regexp \n" << "in" << __FILE__ << __LINE__;
             }
         }
 
@@ -6900,7 +6900,7 @@ int MainWindow::nearest_line(int line)
             if(lastFound < 0)
             {
                 QVector<qint64> sortedIndices = filterIndices;
-                qSort(sortedIndices);
+                std::sort(sortedIndices.begin(), sortedIndices.end());
 
                 int lastIndex = sortedIndices[0];
 

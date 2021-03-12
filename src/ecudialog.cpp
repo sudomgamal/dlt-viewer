@@ -21,6 +21,7 @@
 #include "ui_ecudialog.h"
 
 #include <QSerialPort>
+#include <QRegularExpression>
 
 EcuDialog::EcuDialog(QWidget *parent) :
     QDialog(parent),
@@ -190,7 +191,7 @@ QString EcuDialog::EthInterface()
 
 QString EcuDialog::Serialport()
 {
-    QRegExp rx("^(com|COM)\\d\\d*$");    // matches from COM0 to COM99
+    QRegularExpression rx("^(com|COM)\\d\\d*$");    // matches from COM0 to COM99
     if(ui->comboBoxPortSerial->currentText().contains(rx))
     {
         QString str = "\\\\.\\";
