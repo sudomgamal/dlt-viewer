@@ -471,6 +471,7 @@ private slots:
     void onActionAenuConfigCopyPayloadToClipboardTriggered();
     void on_action_menuConfig_Copy_to_clipboard_triggered();
     void onActionMenuConfigSearchTableCopyToClipboardTriggered();
+    void onActionMenuConfigSearchTableRemoveTriggered();
     void onActionMenuConfigSearchTableCopyPayloadToClipboardTriggered();
 
     // DLT methods

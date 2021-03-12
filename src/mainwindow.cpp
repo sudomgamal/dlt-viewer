@@ -6617,6 +6617,10 @@ void MainWindow::on_tableView_SearchIndex_customContextMenuRequested(QPoint pos)
     connect(action, &QAction::triggered, this, &MainWindow::onActionMenuConfigSearchTableCopyToClipboardTriggered);
     menu.addAction(action);
 
+    action = new QAction("&Remove Selected Items", this);
+    connect(action, &QAction::triggered, this, &MainWindow::onActionMenuConfigSearchTableRemoveTriggered);
+    menu.addAction(action);
+
     action = new QAction("C&opy Selection Payload to Clipboard", this);
     connect(action, &QAction::triggered, this, &MainWindow::onActionMenuConfigSearchTableCopyPayloadToClipboardTriggered);
     menu.addAction(action);
@@ -6634,6 +6638,16 @@ void MainWindow::on_tableView_SearchIndex_customContextMenuRequested(QPoint pos)
 void MainWindow::onActionMenuConfigSearchTableCopyToClipboardTriggered()
 {
     exportSelection_searchTable();
+}
+
+void MainWindow::onActionMenuConfigSearchTableRemoveTriggered()
+{
+    const QModelIndexList list = ui->tableView_SearchIndex->selectionModel()->selectedRows();
+
+    for (auto item : list)
+    {
+        ui->tableView_SearchIndex->hideRow(item.row());
+    }
 }
 
 void MainWindow::onActionMenuConfigSearchTableCopyPayloadToClipboardTriggered()
@@ -6689,6 +6703,14 @@ void MainWindow::keyPressEvent ( QKeyEvent * event )
                     qApp->sendEvent(ui->menuBar, &rightPress);
                 }
             }
+        }
+    }
+
+    if(event->key() == Qt::Key_Delete)
+    {
+        if(ui->tableView_SearchIndex->hasFocus())
+        {
+            onActionMenuConfigSearchTableRemoveTriggered();
         }
     }
 
