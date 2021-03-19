@@ -21,6 +21,8 @@
 #define FORM_H
 
 #include <QWidget>
+#include <QTableWidgetItem>
+#include <QFile>
 
 class InjectionsPlugin;
 
@@ -38,16 +40,29 @@ public:
     ~Form();
 
     void setConnections(QStringList list);
+protected:
+    void keyPressEvent ( QKeyEvent * event );
 private:
     Ui::Form *ui;
     InjectionsPlugin *plugin;
+    QFile injectionsFile;
     bool findItemInColumn(int column, QString text);
 
+public slots:
+    void on_injectionsLoaded(std::vector<QStringList> injections);
+    void on_unloadRequested();
 private slots:
-    void on_pushButtonConnect_clicked();
-    void on_pushButtonDisconnect_clicked();
     void on_btnSendInjection_clicked();
     void on_tblInjections_cellDoubleClicked(int row, int column);
+    void addInjectionToTable(QStringList injection);
+    bool injectionExistsInTable(QStringList injection);
+    void on_btnForwardPort_clicked();
+    void on_btnSaveTable_clicked();
+    void on_lineEditInjectionTitle_returnPressed();
+    void on_lineEditApplicationId_returnPressed();
+    void on_lineEditContextId_returnPressed();
+    void on_lineEditServiceId_returnPressed();
+    void on_lineEditData_returnPressed();
 };
 
 } // namespace Injections
