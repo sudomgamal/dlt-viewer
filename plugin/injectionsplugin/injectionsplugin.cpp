@@ -36,7 +36,7 @@ InjectionsPlugin::InjectionsPlugin()
 
 InjectionsPlugin::~InjectionsPlugin()
 {
-
+    emit unloadRequested();
 }
 
 QString InjectionsPlugin::name()
@@ -66,101 +66,46 @@ QString InjectionsPlugin::error()
 
 bool InjectionsPlugin::loadConfig(QString  filename )
 {
-    /*
     if ( filename.length() <= 0 )
     {
-        // no configuration file provided, return to default configuration
-//        config.setDefault();
-        // return no error
-        errorText = "";
         return true;
     }
 
     QFile file(filename);
     if (!file.open(QFile::ReadOnly | QFile::Text))
     {
-        errorText = "Can not load configuration File: ";
-        errorText.append(filename);
+        qDebug() << "Can not load configuration File: " << filename;
         return false;
     }
 
-//    config.setDefault();
-//    ft_autosave = false;
-//    form->setAutoSave(config.getAutoSavePath(), ft_autosave);
+    std::vector<QStringList> injections;
+    while (!file.atEnd()) {
+        QByteArray injectionDataLine = file.readLine();
+        QString strinjectionDataLine = QString(injectionDataLine);
+        /*remove newline and construc a QStringList*/
+        QStringList injectionData = strinjectionDataLine.trimmed().split(",");
 
-    QXmlStreamReader xml(&file);
-    while (!xml.atEnd()) {
-          xml.readNext();
-
-          if(xml.isStartElement())
-          {
-              if(xml.name() == QString("TAG_FLST"))
-              {
-//                  config.setFlstTag( xml.readElementText() );
-              }
-              if(xml.name() == QString("TAG_FLDA"))
-              {
-//                  config.setFldaTag( xml.readElementText() );
-              }
-              if(xml.name() == QString("TAG_FLFI"))
-              {
-//                  config.setFlfiTag( xml.readElementText() );
-              }
-              if(xml.name() == QString("TAG_FLER"))
-              {
-//                  config.setFlerTag( xml.readElementText() );
-              }
-              if(xml.name() == QString("TAG_FLAPPID"))
-              {
-//                  config.setFlAppIdTag( xml.readElementText() );
-              }
-              if(xml.name() == QString("TAG_FLCTID"))
-              {
-//                  config.setFlCtIdTag( xml.readElementText() );
-              }
-              if(xml.name() == QString("AUTOSAVE"))
-              {
-//                  config.setAutoSavePath( xml.readElementText() );
-//                  ft_autosave = true;
-                  if (!QDir("config.getAutoSavePath()").exists())
-                  {
-                    if ( false == QDir().mkpath("config.getAutoSavePath()") )
-                    {
-                     if ( dltControl->silentmode == true )
-                      {
-                      qDebug() << "ERROR creating autosave folder" << "config.getAutoSavePath()";
-                      }
-                     else
-                      {
-                       QMessageBox::warning(0, QString("ERROR creating autosave folder"), "config.getAutoSavePath()");
-                      }
-                    }
-                  }
-//                form->setAutoSave(config.getAutoSavePath(), true);
-              }
-
-          }
+        /*push the injection data if it contains at least a title, appId, ctxId and srvId (4 elements)*/
+        if(injectionData.count() >= 4)
+        {
+            injections.push_back(injectionData);
+            qDebug() << "Injection read: " <<injectionData;
+        }
     }
-    if (xml.hasError())
+
+    if(false == injections.empty())
     {
-      if ( dltControl->silentmode == true )
-      {
-       qDebug() << "dumm" << QString("XML Parser error %1 at line %2").arg(xml.errorString()).arg(xml.lineNumber());
-      }
-      else
-      {
-        QMessageBox::warning(0, QString("XML Parser error"), xml.errorString());
-      }
+        emit injectionsLoaded(injections);
     }
-
     file.close();
-    */
+
 
     return true;
 }
 
 bool InjectionsPlugin::saveConfig(QString /* filename */)
 {
+    emit unloadRequested();
     return true;
 }
 

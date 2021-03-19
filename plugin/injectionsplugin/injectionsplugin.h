@@ -85,6 +85,10 @@ public:
 
     QDltControl *dltControl;
 
+signals:
+    void injectionsLoaded(std::vector<QStringList> injections);
+    void unloadRequested();
+
 private:
     QDltFile *dltFile;
     QString errorText;
