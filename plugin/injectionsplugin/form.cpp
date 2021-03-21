@@ -137,14 +137,24 @@ void Injections::Form::on_tblInjections_cellDoubleClicked(int row, int column)
             return;
         }
 
-        qDebug() << ui->tblInjections->item(row, 5)->text();
-        QString payload = ui->tblInjections->item(row, 5)->text();
-        if(plugin->dltControl)
+        QString payload = "";
+        if(ui->tblInjections->item(row, 5))
         {
+            payload = ui->tblInjections->item(row, 5)->text();
             if (payload.isEmpty())
             {
                 payload.append('\0');
             }
+        }
+        else
+        {
+            payload.append('\0');
+        }
+
+        qDebug() << "payload: " << payload;
+
+        if(plugin->dltControl)
+        {
             plugin->dltControl->sendInjection(ui->comboBoxConnections->currentIndex(),
                                               ui->tblInjections->item(row, 2)->text(),
                                               ui->tblInjections->item(row, 3)->text(),
@@ -161,7 +171,7 @@ void Injections::Form::addInjectionToTable(QStringList injection)
     ui->tblInjections->setRowCount(ui->tblInjections->rowCount()+1);
 
     QTableWidgetItem *tblItem = new QTableWidgetItem("SEND");
-    tblItem->setBackground(Qt::darkGray);
+    tblItem->setBackground(Qt::darkGreen);
     tblItem->setForeground(Qt::white);
     tblItem->setFlags(tblItem->flags() ^ Qt::ItemIsEditable);
     ui->tblInjections->setItem(ui->tblInjections->rowCount()-1, 0, tblItem);
