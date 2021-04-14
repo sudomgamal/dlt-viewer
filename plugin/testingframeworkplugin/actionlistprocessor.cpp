@@ -22,8 +22,14 @@ void ActionListProcessor::clearActionList()
     vActions.clear();
 }
 
-bool ActionListProcessor::setActionList(std::vector<TestAction> &actions)
+bool ActionListProcessor::setActionList(const std::vector<TestAction> &actions)
 {
+    vActions.clear();
+    if(actions.empty())
+    {
+        qErrnoWarning("actions are empty ... not executing");
+        return false;
+    }
     vActions = actions;
     qDebug()<<"setActionList:*********************";
     for (auto &act : vActions)
@@ -59,9 +65,11 @@ void ActionListProcessor::processTick()
         processTimer->stop();
         timerPeriod = 0;
         actionIndex = 0;
+        emit processingFinished(true);
         return;
     }
 
+    emit processingFinished(false);
     currentAction = &vActions.at(vActions.size() - actionIndex - 1);
 
     if (currentAction && currentAction->actionType == TestActionType::SEND_INJECTION)
@@ -109,6 +117,8 @@ void ActionListProcessor::processTick()
         }
         else if(currentAction->message.status == MessageStatus::RECEIVED)
         {
+            /*the MessageStatus::RECEIVED state is set by the
+             * ActionListProcessor::messageReceived callback*/
             timerPeriod = 0;
             currentAction->status = ActionStatus::ACTION_SUCCESSFUL;
 
@@ -122,6 +132,7 @@ void ActionListProcessor::processTick()
 
 bool ActionListProcessor::processActions()
 {
+    emit processingFinished(false);
     processTimer->start(timerPeriod);
     return true;
 }

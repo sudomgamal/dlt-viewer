@@ -16,11 +16,13 @@ TARGET = $$qtLibraryTarget(testingframeworkplugin)
 
 SOURCES += \
     actionlistprocessor.cpp \
+    testcase.cpp \
     testingframeworkplugin.cpp \
     testingframeworkpluginform.cpp
 
 HEADERS += \
     actionlistprocessor.h \
+    testcase.h \
     testingframeworkplugin.h \
     testingframeworkpluginform.h
 
