@@ -5,6 +5,7 @@
 #include "ui_testingframeworkpluginform.h"
 #include "actionlistprocessor.h"
 #include <QKeyEvent>
+#include "msgfilterdialog.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class TestingFrameworkPluginForm; }
@@ -39,6 +40,9 @@ private slots:
     void on_cbTCList_currentIndexChanged(const QString &arg1);
 
     void on_btnTCAddToQueue_clicked();
+    void on_btnSetFilter_clicked();
+    void filterDialogRead(FilterDialog &dlg, QDltFilter *filter);
+
 protected:
     void keyPressEvent ( QKeyEvent * event );
 
@@ -47,5 +51,6 @@ private:
 
     std::vector<TestCase> testCaseList;
     TestCase* currentTestCase;
+    QDltFilter *currentMessageFilter;
 };
 #endif // TESTINGFRAMEWORKPLUGINFORM_H

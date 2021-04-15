@@ -335,6 +335,19 @@
                   </layout>
                  </item>
                  <item>
+                  <widget class="QPushButton" name="btnSetFilter">
+                   <property name="text">
+                    <string>Set Filter</string>
+                   </property>
+                   <property name="checkable">
+                    <bool>false</bool>
+                   </property>
+                   <property name="checked">
+                    <bool>false</bool>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
                   <layout class="QHBoxLayout" name="horizontalLayout_10">
                    <item>
                     <widget class="QLabel" name="label_6">

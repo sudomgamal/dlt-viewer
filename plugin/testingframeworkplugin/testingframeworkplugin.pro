@@ -16,15 +16,18 @@ TARGET = $$qtLibraryTarget(testingframeworkplugin)
 
 SOURCES += \
     actionlistprocessor.cpp \
+    msgfilterdialog.cpp \
     testcase.cpp \
     testingframeworkplugin.cpp \
     testingframeworkpluginform.cpp
 
 HEADERS += \
     actionlistprocessor.h \
+    msgfilterdialog.h \
     testcase.h \
     testingframeworkplugin.h \
     testingframeworkpluginform.h
 
 FORMS += \
+    msgfilterdialog.ui \
     testingframeworkpluginform.ui

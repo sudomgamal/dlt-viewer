@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QProcess>
 
+
 TestingFrameworkPluginForm::TestingFrameworkPluginForm(QWidget *parent)
     : QWidget(parent)
     , tcListFile(tcListFilePath)
@@ -20,7 +21,7 @@ TestingFrameworkPluginForm::TestingFrameworkPluginForm(QWidget *parent)
         {
             while (stream.readNextStartElement())
             {
-//                qDebug()<< "READER: NAME -> " << stream.name();
+                //                qDebug()<< "READER: NAME -> " << stream.name();
                 if (stream.name() == "testcase")
                 {
                     qDebug()<< "READER: new testcase";
@@ -29,7 +30,7 @@ TestingFrameworkPluginForm::TestingFrameworkPluginForm(QWidget *parent)
                     qDebug()<< "testCaseList.size(): " << testCaseList.size();
                     while (stream.readNextStartElement())
                     {
-//                        qDebug()<< "READER: NAME ->>> " << stream.name();
+                        //qDebug()<< "READER: NAME ->>> " << stream.name();
                         if (stream.name() == "tcname")
                         {
                             testCaseList.back().name = stream.readElementText();
@@ -52,9 +53,36 @@ TestingFrameworkPluginForm::TestingFrameworkPluginForm(QWidget *parent)
                             QString strTimeOut = stream.attributes().value("timeout").toString();
                             TestAction act;
                             act.actionType = TestActionType::WAIT_FOR_MESSAGE;
+                            stream.readNextStartElement();/*<text>*/
                             act.message.text =  stream.readElementText();
                             act.message.timeout = strTimeOut.toInt();
                             act.actionIndex = index;
+                            QDltFilter filter;
+                            bool filterRead = false;
+
+                            while (!filterRead)
+                            {
+                                stream.readNext();
+                                qDebug()<<"READER: current msg name >>>>> "<< stream.name();
+                                if(stream.isStartElement())
+                                {
+                                    if(stream.name() == QString("filter"))
+                                    {
+                                        filter.clear();
+                                    }
+                                    filter.LoadFilterItem(stream);
+                                }
+                                if(stream.isEndElement() && stream.name() == QString("filter"))
+                                {
+                                    qDebug()<<"READER: setting filter "<< stream.name();
+                                    filterRead = true;
+                                    stream.skipCurrentElement();
+                                }
+                            }
+                            QDltFilter *filter_new = new QDltFilter();
+                            *filter_new = filter;
+                            act.message.msgFilter = filter_new;
+
                             testCaseList.back().addAction(act);
                             index++;
                             qDebug()<< "READER: message -> " << act.message.text << " <- for " << act.message.timeout << "ms" ;
@@ -86,7 +114,7 @@ TestingFrameworkPluginForm::TestingFrameworkPluginForm(QWidget *parent)
     }
 
     connect(&processor, SIGNAL(informActionStatus(int, ActionStatus)), this, SLOT(actionStatusUpdated(int, ActionStatus)));
-    connect(&processor, SIGNAL(processingFinished(bool)), ui->btExecuteList, SLOT(setEnabled(bool)));
+    connect(&processor, SIGNAL(processingFinished(bool)), ui->tabWidget, SLOT(setEnabled(bool)));
 }
 
 TestingFrameworkPluginForm::~TestingFrameworkPluginForm()
@@ -104,7 +132,7 @@ TestingFrameworkPluginForm::~TestingFrameworkPluginForm()
         qDebug() << "adding test case" << testCase->name;
         stream.writeStartElement("testcase");
         stream.writeTextElement("tcname", testCase->name);
-        for (auto action = testCase->getTCActionList().crbegin(); action<testCase->getTCActionList().crend(); ++action)
+        for (auto action = testCase->getTCActionList().rbegin(); action<testCase->getTCActionList().rend(); ++action)
         {
             if (action->actionType == TestActionType::SEND_INJECTION)
             {
@@ -113,14 +141,23 @@ TestingFrameworkPluginForm::~TestingFrameworkPluginForm()
             }
             else if (action->actionType == TestActionType::WAIT_FOR_MESSAGE)
             {
-                qDebug() << "adding msg" << action->message.text;
-                stream.writeStartElement("msg");
-                stream.writeAttribute("timeout", QString::number(action->message.timeout));
-                stream.writeCharacters(action->message.text);
-                stream.writeEndElement();
+                if (action->message.msgFilter)
+                {
+                    qDebug() << "adding msg" << action->message.text;
+                    stream.writeStartElement("msg");
+                    stream.writeAttribute("timeout", QString::number(action->message.timeout));
+                    stream.writeTextElement("text", action->message.text);
+                    stream.writeStartElement("filter");
+                    action->message.msgFilter->SaveFilterItem(stream);
+                    stream.writeEndElement();//filter
+                    stream.writeEndElement();//msg
+                }
+                else
+                {
+                    qDebug()<< "Not writing message duee to empty filter";
+                }
             }
         }
-
         stream.writeEndElement(); //testCase->name
     }
 
@@ -182,7 +219,8 @@ void TestingFrameworkPluginForm::on_btnAddAction_clicked()
         tAction.actionType = TestActionType::WAIT_FOR_MESSAGE;
         tAction.message.text = ui->leMsgText->text();
         tAction.message.timeout = ui->spMsgTimeout->value() * 1000;
-
+        /*currentMessageFilter is updated by the filter dialog in on_btnSetFilter_clicked*/
+        tAction.message.msgFilter = currentMessageFilter;
         if(ui->spMsgTimeout->value() > 0)
         {
             itemDetails << " within " << ui->spMsgTimeout->text() << " seconds";
@@ -219,13 +257,10 @@ void TestingFrameworkPluginForm::on_btExecuteList_clicked()
     {
         ui->lwActionQueue->item(i)->setBackgroundColor(Qt::white);
     }
-    //    processor.setActionList(actionQueue);
-    processor.processActions();
 }
 
 void TestingFrameworkPluginForm::on_btnClearActionQueue_clicked()
 {
-    //    actionQueue.clear();
     ui->lwActionQueue->clear();
 }
 
@@ -364,4 +399,63 @@ void TestingFrameworkPluginForm::keyPressEvent ( QKeyEvent * event )
             }
         }
     }
+}
+
+void TestingFrameworkPluginForm::on_btnSetFilter_clicked()
+{
+    /* show filter dialog */
+    FilterDialog dlg;
+    //    dlg.setEnableEcuId(!msg.getEcuid().isEmpty());
+    //    dlg.setEcuId(msg.getEcuid());
+    //    dlg.setEnableApplicationId(!msg.getApid().isEmpty());
+    //    dlg.setApplicationId(msg.getApid());
+    //    dlg.setEnableContextId(!msg.getCtid().isEmpty());
+    //    dlg.setContextId(msg.getCtid());
+    //    dlg.setHeaderText(msg.toStringHeader());
+    dlg.setPayloadText(ui->leMsgText->text());
+    dlg.setEnablePayloadText(true);
+    //    dlg.setMessageId_min(msg.getMessageId());
+    //    dlg.setMessageId_max(0);
+
+    if(dlg.exec()==1)
+    {
+        QDltFilter *newFilter = new QDltFilter();
+        currentMessageFilter = newFilter;
+        filterDialogRead(dlg, currentMessageFilter);
+    }
+}
+
+void TestingFrameworkPluginForm::filterDialogRead(FilterDialog &dlg,QDltFilter *filter)
+{
+    filter->type = (QDltFilter::FilterType)(dlg.getType());
+    filter->name = ui->leMsgText->text();
+    filter->ecuid = dlg.getEcuId();
+    filter->apid = dlg.getApplicationId();
+    filter->ctid = dlg.getContextId();
+    filter->header = dlg.getHeaderText();
+    filter->payload = dlg.getPayloadText();
+    filter->regex_search = dlg.getRegexSearchText();
+    filter->regex_replace = dlg.getRegexReplaceText();
+    filter->enableRegexp_Appid = dlg.getEnableRegexp_Appid();
+    filter->enableRegexp_Context = dlg.getEnableRegexp_Context();
+    filter->enableRegexp_Header = dlg.getEnableRegexp_Header();
+    filter->enableRegexp_Payload = dlg.getEnableRegexp_Payload();
+    filter->ignoreCase_Header = dlg.getIgnoreCase_Header();
+    filter->ignoreCase_Payload = dlg.getIgnoreCase_Payload();
+    filter->enableFilter = true;
+    filter->enableEcuid = dlg.getEnableEcuId();
+    filter->enableApid = dlg.getEnableApplicationId();
+    filter->enableCtid = dlg.getEnableContextId();
+    filter->enableHeader = dlg.getEnableHeaderText();
+    filter->enablePayload = dlg.getEnablePayloadText();
+    filter->enableCtrlMsgs = dlg.getEnableCtrlMsgs();
+    filter->enableLogLevelMax = dlg.getEnableLogLevelMax();
+    filter->enableLogLevelMin = dlg.getEnableLogLevelMin();
+    filter->enableMarker = false;
+    filter->enableMessageId = dlg.getEnableMessageId();
+    filter->enableRegexSearchReplace = dlg.getEnableRegexSearchReplace();
+    filter->logLevelMax = dlg.getLogLevelMax();
+    filter->logLevelMin = dlg.getLogLevelMin();
+    filter->messageIdMax=dlg.getMessageId_max();
+    filter->messageIdMin=dlg.getMessageId_min();
 }

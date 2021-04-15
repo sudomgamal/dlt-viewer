@@ -1,0 +1,431 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>FilterDialog</class>
+ <widget class="QDialog" name="FilterDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>524</width>
+    <height>560</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Filter Configuration</string>
+  </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>:/toolbar/png/edit-cut.png</normaloff>:/toolbar/png/edit-cut.png</iconset>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <item row="23" column="0">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+   <item row="4" column="0" colspan="2">
+    <layout class="QGridLayout" name="gridLayout_3">
+     <item row="3" column="0">
+      <widget class="QCheckBox" name="checkBoxHeaderText">
+       <property name="text">
+        <string>Header Text:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="3">
+      <widget class="QCheckBox" name="checkBoxRegexp_Context">
+       <property name="toolTip">
+        <string>Enable this option, to use regular expressions for ContextId  text.</string>
+       </property>
+       <property name="text">
+        <string>RegExp</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="0">
+      <widget class="QCheckBox" name="checkBoxMessageId">
+       <property name="text">
+        <string>Message Id</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1" colspan="2">
+      <widget class="QLineEdit" name="lineEditContextId">
+       <property name="maxLength">
+        <number>40</number>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="1" colspan="2">
+      <widget class="QLineEdit" name="lineEditApplicationId"/>
+     </item>
+     <item row="3" column="3">
+      <widget class="QCheckBox" name="checkBoxRegexp_Header">
+       <property name="toolTip">
+        <string>Enable this option, to use regular expressions for header  text.</string>
+       </property>
+       <property name="text">
+        <string>RegExp</string>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="0">
+      <widget class="QCheckBox" name="checkBoxContextId">
+       <property name="text">
+        <string>Context Id:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="9" column="0">
+      <widget class="QCheckBox" name="checkBoxCtrlMsgs">
+       <property name="text">
+        <string>Control Messages</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="0">
+      <widget class="QCheckBox" name="checkBoxLogLevelMin">
+       <property name="text">
+        <string>Log Level Min</string>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="1">
+      <widget class="QComboBox" name="comboBoxLogLevelMax">
+       <item>
+        <property name="text">
+         <string>off</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>fatal</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>error</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>warn</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>info</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>debug</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>verbose</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="7" column="2">
+      <spacer name="horizontalSpacer">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item row="3" column="1" colspan="2">
+      <widget class="QLineEdit" name="lineEditHeaderText"/>
+     </item>
+     <item row="4" column="3">
+      <widget class="QCheckBox" name="checkBoxRegexp_Payload">
+       <property name="toolTip">
+        <string>Enable this option, to use regular expressions for payload text.</string>
+       </property>
+       <property name="text">
+        <string>RegExp</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1" colspan="2">
+      <widget class="QLineEdit" name="lineEditEcuId"/>
+     </item>
+     <item row="4" column="1" colspan="2">
+      <widget class="QLineEdit" name="lineEditPayloadText"/>
+     </item>
+     <item row="4" column="4">
+      <widget class="QCheckBox" name="checkBox_IgnoreCase_Payload">
+       <property name="toolTip">
+        <string>Enable this option, to ignore case on payload search expression</string>
+       </property>
+       <property name="statusTip">
+        <string/>
+       </property>
+       <property name="text">
+        <string>ic</string>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="3">
+      <widget class="QCheckBox" name="checkBoxRegexp_Appid">
+       <property name="toolTip">
+        <string>Enable this option, to use regular expressions for AppId  text.</string>
+       </property>
+       <property name="text">
+        <string>RegExp</string>
+       </property>
+      </widget>
+     </item>
+     <item row="8" column="0">
+      <widget class="QCheckBox" name="checkBoxLogLevelMax">
+       <property name="text">
+        <string>Log Level Max</string>
+       </property>
+      </widget>
+     </item>
+     <item row="7" column="1">
+      <widget class="QComboBox" name="comboBoxLogLevelMin">
+       <item>
+        <property name="text">
+         <string>off</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>fatal</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>error</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>warn</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>info</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>debug</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>verbose</string>
+        </property>
+       </item>
+      </widget>
+     </item>
+     <item row="1" column="0">
+      <widget class="QCheckBox" name="checkBoxApplicationId">
+       <property name="text">
+        <string>Application Id:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="5" column="1" colspan="2">
+      <layout class="QHBoxLayout" name="horizontalLayout_msgId">
+       <property name="spacing">
+        <number>6</number>
+       </property>
+       <item>
+        <widget class="QLabel" name="label_msgIdMin">
+         <property name="text">
+          <string>min:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="lineEdit_msgIdMin"/>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_msgIdMax">
+         <property name="text">
+          <string>max:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="lineEdit_msgIdMax"/>
+       </item>
+      </layout>
+     </item>
+     <item row="0" column="0">
+      <widget class="QCheckBox" name="checkBoxEcuId">
+       <property name="text">
+        <string>ECU Id:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="4" column="0">
+      <widget class="QCheckBox" name="checkBoxPayloadText">
+       <property name="text">
+        <string>Payload Text:</string>
+       </property>
+      </widget>
+     </item>
+     <item row="6" column="1" colspan="4">
+      <widget class="QPlainTextEdit" name="plainTextEdit_msgIdRule">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Expanding" vsizetype="Minimum">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>0</width>
+         <height>30</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>30</height>
+        </size>
+       </property>
+       <property name="frameShape">
+        <enum>QFrame::NoFrame</enum>
+       </property>
+       <property name="frameShadow">
+        <enum>QFrame::Plain</enum>
+       </property>
+       <property name="lineWidth">
+        <number>0</number>
+       </property>
+       <property name="verticalScrollBarPolicy">
+        <enum>Qt::ScrollBarAlwaysOff</enum>
+       </property>
+       <property name="horizontalScrollBarPolicy">
+        <enum>Qt::ScrollBarAlwaysOff</enum>
+       </property>
+       <property name="sizeAdjustPolicy">
+        <enum>QAbstractScrollArea::AdjustToContents</enum>
+       </property>
+       <property name="undoRedoEnabled">
+        <bool>false</bool>
+       </property>
+       <property name="plainText">
+        <string>1 msgId Rule Info
+2
+3</string>
+       </property>
+       <property name="textInteractionFlags">
+        <set>Qt::TextSelectableByMouse</set>
+       </property>
+      </widget>
+     </item>
+     <item row="3" column="4">
+      <widget class="QCheckBox" name="checkBox_IgnoreCase_Header">
+       <property name="toolTip">
+        <string>Enable this option, to ignore case on header search expression</string>
+       </property>
+       <property name="statusTip">
+        <string/>
+       </property>
+       <property name="text">
+        <string>ic</string>
+       </property>
+      </widget>
+     </item>
+     <item row="10" column="0">
+      <widget class="QCheckBox" name="checkBoxRegexSearchReplace">
+       <property name="text">
+        <string>Regex Replace</string>
+       </property>
+      </widget>
+     </item>
+     <item row="10" column="1">
+      <widget class="QLineEdit" name="lineEditRegexSearch"/>
+     </item>
+     <item row="10" column="2">
+      <widget class="QLineEdit" name="lineEditRegexReplace"/>
+     </item>
+    </layout>
+   </item>
+  </layout>
+ </widget>
+ <tabstops>
+  <tabstop>checkBoxEcuId</tabstop>
+  <tabstop>lineEditEcuId</tabstop>
+  <tabstop>checkBoxApplicationId</tabstop>
+  <tabstop>lineEditApplicationId</tabstop>
+  <tabstop>checkBoxRegexp_Appid</tabstop>
+  <tabstop>checkBoxContextId</tabstop>
+  <tabstop>lineEditContextId</tabstop>
+  <tabstop>checkBoxRegexp_Context</tabstop>
+  <tabstop>checkBoxHeaderText</tabstop>
+  <tabstop>lineEditHeaderText</tabstop>
+  <tabstop>checkBoxRegexp_Header</tabstop>
+  <tabstop>checkBox_IgnoreCase_Header</tabstop>
+  <tabstop>checkBoxPayloadText</tabstop>
+  <tabstop>lineEditPayloadText</tabstop>
+  <tabstop>checkBoxRegexp_Payload</tabstop>
+  <tabstop>checkBox_IgnoreCase_Payload</tabstop>
+  <tabstop>checkBoxLogLevelMin</tabstop>
+  <tabstop>comboBoxLogLevelMin</tabstop>
+  <tabstop>checkBoxLogLevelMax</tabstop>
+  <tabstop>comboBoxLogLevelMax</tabstop>
+  <tabstop>checkBoxCtrlMsgs</tabstop>
+ </tabstops>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>FilterDialog</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>164</x>
+     <y>356</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>FilterDialog</receiver>
+   <slot>validate()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>51</x>
+     <y>368</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>260</x>
+     <y>359</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+ <slots>
+  <slot>validate()</slot>
+ </slots>
+ <buttongroups>
+  <buttongroup name="buttonGroup_filterType"/>
+ </buttongroups>
+</ui>

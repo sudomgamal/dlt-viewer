@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QDebug>
+#include "qdlt.h"
 
 enum MessageStatus
 {
@@ -17,6 +18,7 @@ struct MessageDetails
     QString text;
     MessageStatus status;
     int timeout;
+    QDltFilter *msgFilter;
 };
 
 enum ActionStatus
@@ -51,10 +53,10 @@ struct TestAction
         actionIndex = 0;
         actionType = TestActionType::INVALID;
         injection.clear();
-        message = MessageDetails{"", MessageStatus::PENDING, 0};
+        message = MessageDetails{"", MessageStatus::PENDING, 0, nullptr};
     }
 
-    int actionIndex ;
+    int actionIndex;
     TestActionType actionType;
     QStringList injection;
     MessageDetails message;

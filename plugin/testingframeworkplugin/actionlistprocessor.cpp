@@ -27,7 +27,7 @@ bool ActionListProcessor::setActionList(const std::vector<TestAction> &actions)
     vActions.clear();
     if(actions.empty())
     {
-        qErrnoWarning("actions are empty ... not executing");
+        qDebug("actions are empty ... not executing");
         return false;
     }
     vActions = actions;
@@ -146,8 +146,7 @@ void ActionListProcessor::messageReceived(QDltMsg msg)
         QString msgText = arg.toString();
         if (currentAction->message.status == MessageStatus::WAITING)
         {
-
-            if (msg.getPayload().size() && ! currentAction->message.text.compare(msgText, Qt::CaseSensitive))
+            if (currentAction->message.msgFilter->match(msg))
             {
                 qDebug()<< "HOORAAY: " << msgText;
                 currentAction->message.status = MessageStatus::RECEIVED;
