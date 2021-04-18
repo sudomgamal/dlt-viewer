@@ -65,11 +65,11 @@ void ActionListProcessor::processTick()
         processTimer->stop();
         timerPeriod = 0;
         actionIndex = 0;
-        emit processingFinished(true);
+        emit processingOngoing(false);
         return;
     }
 
-    emit processingFinished(false);
+    emit processingOngoing(true);
     currentAction = &vActions.at(vActions.size() - actionIndex - 1);
 
     if (currentAction && currentAction->actionType == TestActionType::SEND_INJECTION)
@@ -132,7 +132,7 @@ void ActionListProcessor::processTick()
 
 bool ActionListProcessor::processActions()
 {
-    emit processingFinished(false);
+    emit processingOngoing(true);
     processTimer->start(timerPeriod);
     return true;
 }

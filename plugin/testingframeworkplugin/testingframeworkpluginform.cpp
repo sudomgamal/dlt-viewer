@@ -11,6 +11,14 @@ TestingFrameworkPluginForm::TestingFrameworkPluginForm(QWidget *parent)
     ui->setupUi(this);
     ui->grbExpectationDetails->setEnabled(false);
     currentTestCase = nullptr;
+    loadTestCasesFromXML();
+
+    connect(&processor, SIGNAL(informActionStatus(int, ActionStatus)), this, SLOT(actionStatusUpdated(int, ActionStatus)));
+    connect(&processor, SIGNAL(processingOngoing(bool)), this, SLOT(handleProcessingOngoing(bool)));
+}
+
+bool TestingFrameworkPluginForm::loadTestCasesFromXML()
+{
     if (!tcListFile.open(QIODevice::ReadOnly | QIODevice::Text))
         qDebug()<< "Cannot open file: " << tcListFile << "for reading";
     QXmlStreamReader stream(&tcListFile);
@@ -55,6 +63,7 @@ TestingFrameworkPluginForm::TestingFrameworkPluginForm(QWidget *parent)
                             act.actionType = TestActionType::WAIT_FOR_MESSAGE;
                             stream.readNextStartElement();/*<text>*/
                             act.message.text =  stream.readElementText();
+                            qDebug()<< "READER: NAME -> " << stream.name();
                             act.message.timeout = strTimeOut.toInt();
                             act.actionIndex = index;
                             QDltFilter filter;
@@ -63,7 +72,7 @@ TestingFrameworkPluginForm::TestingFrameworkPluginForm(QWidget *parent)
                             while (!filterRead)
                             {
                                 stream.readNext();
-                                qDebug()<<"READER: current msg name >>>>> "<< stream.name();
+                                //qDebug()<<"READER: current msg name >>>>> "<< stream.name();
                                 if(stream.isStartElement())
                                 {
                                     if(stream.name() == QString("filter"))
@@ -94,10 +103,12 @@ TestingFrameworkPluginForm::TestingFrameworkPluginForm(QWidget *parent)
     }
     tcListFile.close();
 
+    /*ptint the list and update the UI*/
     qDebug()<<"All data read :VVVVVVVVVVVVVVVVVVVVV";
     for (auto &tc : testCaseList)
     {
         ui->cbTCList->addItem(tc.name);
+
         qDebug()<<"Actions of " << tc.name;
         for (auto &act : tc.getTCActionList())
         {
@@ -112,9 +123,7 @@ TestingFrameworkPluginForm::TestingFrameworkPluginForm(QWidget *parent)
             }
         }
     }
-
-    connect(&processor, SIGNAL(informActionStatus(int, ActionStatus)), this, SLOT(actionStatusUpdated(int, ActionStatus)));
-    connect(&processor, SIGNAL(processingFinished(bool)), ui->tabWidget, SLOT(setEnabled(bool)));
+    return true;
 }
 
 TestingFrameworkPluginForm::~TestingFrameworkPluginForm()
@@ -219,8 +228,23 @@ void TestingFrameworkPluginForm::on_btnAddAction_clicked()
         tAction.actionType = TestActionType::WAIT_FOR_MESSAGE;
         tAction.message.text = ui->leMsgText->text();
         tAction.message.timeout = ui->spMsgTimeout->value() * 1000;
-        /*currentMessageFilter is updated by the filter dialog in on_btnSetFilter_clicked*/
-        tAction.message.msgFilter = currentMessageFilter;
+
+        /*currentMessageFilter should be updated by the filter dialog in on_btnSetFilter_clicked
+            if not, create a tmp one with the message text as payload*/
+        if (currentMessageFilter != nullptr)
+        {
+            tAction.message.msgFilter = currentMessageFilter;
+            currentMessageFilter = nullptr;
+        }
+        else
+        {
+            QDltFilter *tmpFilter = new QDltFilter();
+            tmpFilter->type = (QDltFilter::FilterType)(QDltFilter::FilterType::positive);
+            tmpFilter->enableFilter = true;
+            tmpFilter->enablePayload = true;
+            tmpFilter->enableMarker = false;
+            tAction.message.msgFilter = tmpFilter;
+        }
         if(ui->spMsgTimeout->value() > 0)
         {
             itemDetails << " within " << ui->spMsgTimeout->text() << " seconds";
@@ -281,15 +305,19 @@ void TestingFrameworkPluginForm::actionStatusUpdated(int index, ActionStatus sta
     switch (status)
     {
     case ActionStatus::ACTION_WAITING:
+        ui->lblStatus->setText(QString("Waiting for message %1").arg(currentTestCase->getAction(index).message.text));
         ui->lwActionList->item(index)->setBackgroundColor(Qt::yellow);
         break;
     case ActionStatus::ACTION_SUCCESSFUL:
         ui->lwActionList->item(index)->setBackgroundColor(Qt::green);
+        ui->lblStatus->setText(QString("Action completed successfully"));
         break;
     case ActionStatus::ACTION_FAILED:
+        ui->lblStatus->setText(QString("Action Failed"));
         ui->lwActionList->item(index)->setBackgroundColor(Qt::red);
         break;
     case ActionStatus::ACTION_PENDING:
+        ui->lwActionList->item(index)->setBackgroundColor(Qt::yellow);
     default:
         break;
     }
@@ -380,8 +408,9 @@ void TestingFrameworkPluginForm::on_cbTCList_currentIndexChanged(const QString &
 }
 
 void TestingFrameworkPluginForm::on_btnTCAddToQueue_clicked()
-{
-
+{    
+    testCaseQueue.insert(testCaseQueue.begin(), &testCaseList[ui->cbTCList->currentIndex()]);
+    ui->lwActionQueue->addItem(ui->cbTCList->currentText());
 }
 
 void TestingFrameworkPluginForm::keyPressEvent ( QKeyEvent * event )
@@ -458,4 +487,8 @@ void TestingFrameworkPluginForm::filterDialogRead(FilterDialog &dlg,QDltFilter *
     filter->logLevelMin = dlg.getLogLevelMin();
     filter->messageIdMax=dlg.getMessageId_max();
     filter->messageIdMin=dlg.getMessageId_min();
+}
+void TestingFrameworkPluginForm::handleProcessingOngoing(bool isInProgress)
+{
+    ui->tabWidget->setEnabled(!isInProgress);
 }

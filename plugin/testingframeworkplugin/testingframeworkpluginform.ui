@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>946</width>
-    <height>794</height>
+    <width>750</width>
+    <height>573</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -30,11 +30,11 @@
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
-       <string>All Actions</string>
+       <string>Testcase preparation</string>
       </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_9">
+      <layout class="QHBoxLayout" name="horizontalLayout_14">
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <layout class="QHBoxLayout" name="horizontalLayout_13">
          <item>
           <widget class="QGroupBox" name="groupBox_2">
            <property name="sizePolicy">
@@ -452,6 +452,30 @@
              </item>
             </layout>
            </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_4">
+             <item>
+              <widget class="QLabel" name="label_4">
+               <property name="text">
+                <string>Status: </string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="lblStatus">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string/>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
           </layout>
          </item>
         </layout>
@@ -460,7 +484,7 @@
      </widget>
      <widget class="QWidget" name="tab_2">
       <attribute name="title">
-       <string>Test case Queue</string>
+       <string>Testcase Queue</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_8">
        <item>

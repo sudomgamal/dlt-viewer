@@ -38,7 +38,7 @@ private slots:
 
 signals:
     void informActionStatus(int, ActionStatus);
-    void processingFinished(bool);
+    void processingOngoing(bool);
 
 public slots:
     void messageReceived(QDltMsg msg);

@@ -29,6 +29,13 @@ enum ActionStatus
     ACTION_SUCCESSFUL
 };
 
+enum TestCaseStatus
+{
+    TC_Running,
+    TC_FAILED,
+    TC_SUCCESSFUL
+};
+
 /*Index names for QStringList injection*/
 enum InjectionIdx
 {
@@ -72,10 +79,12 @@ public:
     TestCase(const TestCase& tc, QObject *parent = nullptr);
     TestCase(const QString& name, QObject *parent = nullptr);
     const std::vector<TestAction>& getTCActionList() const;
+    const TestAction& getAction(int idx) const;
     bool addAction(TestAction testAction);
     bool removeAction(int actionIndex);
 
     QString name;
+    TestCaseStatus status;
 private:
     std::vector<TestAction> tcActionList;
 };

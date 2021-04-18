@@ -1,26 +1,22 @@
 #include "testcase.h"
 
-TestCase::TestCase(QObject *parent): QObject(parent)
-{
-    tcActionList.clear();
-    name.clear();
-}
+TestCase::TestCase(QObject *parent): QObject(parent), name(), status(), tcActionList()
+{}
 
-TestCase::TestCase(const TestCase &tc, QObject *parent): QObject(parent)
-{
-    name = tc.name;
-    tcActionList = tc.tcActionList;
-}
+TestCase::TestCase(const TestCase &tc, QObject *parent): QObject(parent), name(tc.name), status(), tcActionList(tc.tcActionList)
+{}
 
-TestCase::TestCase(const QString& tcname, QObject *parent): QObject(parent)
-{
-    tcActionList.clear();
-    name = tcname;
-}
+TestCase::TestCase(const QString& tcname, QObject *parent): QObject(parent), name(tcname), status(), tcActionList()
+{}
 
 const std::vector<TestAction>& TestCase::getTCActionList() const
 {
     return tcActionList;
+}
+
+const TestAction& TestCase::getAction(int idx) const
+{
+    return *(tcActionList.rbegin()+idx);
 }
 
 bool TestCase::addAction(TestAction testAction)

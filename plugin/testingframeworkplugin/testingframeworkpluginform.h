@@ -42,14 +42,17 @@ private slots:
     void on_btnTCAddToQueue_clicked();
     void on_btnSetFilter_clicked();
     void filterDialogRead(FilterDialog &dlg, QDltFilter *filter);
+    void handleProcessingOngoing(bool isInProgress);
 
 protected:
     void keyPressEvent ( QKeyEvent * event );
 
 private:
+    bool loadTestCasesFromXML();
     Ui::TestingFrameworkPluginForm *ui;
 
     std::vector<TestCase> testCaseList;
+    std::vector<TestCase*> testCaseQueue; /*queued to be executed togeter*/
     TestCase* currentTestCase;
     QDltFilter *currentMessageFilter;
 };
