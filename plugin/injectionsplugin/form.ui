@@ -27,7 +27,7 @@
    <item row="11" column="2">
     <widget class="QLineEdit" name="lineEditServiceId">
      <property name="text">
-      <string>4095</string>
+      <string/>
      </property>
     </widget>
    </item>
@@ -101,7 +101,7 @@
    <item row="12" column="2">
     <widget class="QLineEdit" name="lineEditData">
      <property name="text">
-      <string>Hello</string>
+      <string/>
      </property>
     </widget>
    </item>
@@ -164,21 +164,21 @@
    <item row="8" column="2">
     <widget class="QLineEdit" name="lineEditInjectionTitle">
      <property name="text">
-      <string>Send Hello</string>
+      <string/>
      </property>
     </widget>
    </item>
    <item row="9" column="2">
     <widget class="QLineEdit" name="lineEditApplicationId">
      <property name="text">
-      <string>LOG</string>
+      <string/>
      </property>
     </widget>
    </item>
    <item row="10" column="2">
     <widget class="QLineEdit" name="lineEditContextId">
      <property name="text">
-      <string>INJ</string>
+      <string/>
      </property>
     </widget>
    </item>
