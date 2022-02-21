@@ -84,15 +84,18 @@ public:
     void updateCounters(int start,int end);
 
     QDltControl *dltControl;
+    bool readInjectionsFromFile(QVector<QStringList> &injections, const QString &filename);
+    std::vector<InjectionGroup> &getInjectionGroups();
 
 signals:
-    void injectionsLoaded(std::vector<QStringList> injections);
+    void injectionsLoaded();
     void unloadRequested();
 
 private:
     QDltFile *dltFile;
     QString errorText;
     QStringList *ecuList;
+    std::vector<InjectionGroup> m_injectionGroups;
 };
 
 #endif // INJECTIONSPLUGIN_H

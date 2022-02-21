@@ -26,6 +26,12 @@
 
 class InjectionsPlugin;
 
+struct InjectionGroup
+{
+    QString groupName;
+    QVector<QStringList> injections;
+};
+
 namespace Injections {
     namespace Ui {
         class Form;
@@ -46,18 +52,29 @@ private:
     Ui::Form *ui;
     InjectionsPlugin *plugin;
     QFile injectionsFile;
+    QAtomicInt m_addingInjections = 0;
     bool findItemInColumn(int column, QString text);
 
 public slots:
-    void on_injectionsLoaded(std::vector<QStringList> injections);
+    void on_injectionsLoaded();
     void on_unloadRequested();
+
+    bool saveInjectionGroupToFile(InjectionGroup group);
+private slots:
+    void on_tblInjections_cellChanged(int row, int column);
+
+private slots:
+    void on_cmbInjGroup_editTextChanged(const QString &arg1);
+
+private slots:
+    void on_cmbInjGroup_currentIndexChanged(int index);
+
 private slots:
     void on_btnSendInjection_clicked();
     void on_tblInjections_cellDoubleClicked(int row, int column);
     void addInjectionToTable(QStringList injection);
     bool injectionExistsInTable(QStringList injection);
     void on_btnForwardPort_clicked();
-    void on_btnSaveTable_clicked();
     void on_lineEditInjectionTitle_returnPressed();
     void on_lineEditApplicationId_returnPressed();
     void on_lineEditContextId_returnPressed();
