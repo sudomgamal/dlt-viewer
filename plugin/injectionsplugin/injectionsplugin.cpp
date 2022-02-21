@@ -66,19 +66,44 @@ QString InjectionsPlugin::error()
 
 bool InjectionsPlugin::loadConfig(QString  filename )
 {
-    if ( filename.length() <= 0 )
+    (void)filename;
+    m_injectionGroups.clear();
+
+    QDir directory(QCoreApplication::applicationDirPath()+"/injections");
+
+    QStringList csvFiles = directory.entryList(QStringList() << "*.csv", QDir::Files);
+    qDebug() << "InjectionsPlugin::loadConfig. files are:" << csvFiles;
+    for(const QString &filename : qAsConst(csvFiles))
     {
-        return true;
+        InjectionGroup grp;
+        grp.groupName = filename.split(".csv",QString::SkipEmptyParts,Qt::CaseInsensitive).at(0);
+        readInjectionsFromFile(grp.injections, directory.absolutePath() + "/" + filename);
+        m_injectionGroups.push_back(grp);
     }
 
-    QFile file(filename);
-    if (!file.open(QFile::ReadOnly | QFile::Text))
+    if (!m_injectionGroups.empty())
+    {
+        emit injectionsLoaded();
+    }
+
+    return true;
+}
+
+bool InjectionsPlugin::readInjectionsFromFile(QVector<QStringList> &injections, const QString& filename)
+{
+    if ( filename.length() <= 0 )
     {
         qDebug() << "Can not load configuration File: " << filename;
         return false;
     }
 
-    std::vector<QStringList> injections;
+    QFile file(filename);
+    if (!file.open(QFile::ReadOnly | QFile::Text))
+    {
+        qDebug() << "Can not open configuration File: " << filename;
+        return false;
+    }
+
     while (!file.atEnd()) {
         QByteArray injectionDataLine = file.readLine();
         QString strinjectionDataLine = QString(injectionDataLine);
@@ -92,15 +117,14 @@ bool InjectionsPlugin::loadConfig(QString  filename )
             qDebug() << "Injection read: " <<injectionData;
         }
     }
-
-    if(false == injections.empty())
-    {
-        emit injectionsLoaded(injections);
-    }
     file.close();
 
-
     return true;
+}
+
+std::vector<InjectionGroup>& InjectionsPlugin::getInjectionGroups()
+{
+    return m_injectionGroups;
 }
 
 bool InjectionsPlugin::saveConfig(QString /* filename */)

@@ -60,6 +60,7 @@ Form::Form(InjectionsPlugin *_plugin,QWidget *parent) :
 Form::~Form()
 {
     delete ui;
+    on_unloadRequested();
 }
 
 void Form::setConnections(QStringList list)
@@ -102,7 +103,7 @@ void Injections::Form::on_btnSendInjection_clicked()
     }
     else
     {
-        qDebug()<<"ERROR: dltControl plugin is no loaded. Can not send injection" ;
+        qDebug()<<"ERROR: dltControl plugin is not loaded. Can not send injection" ;
     }
 
     QStringList injection;
@@ -123,6 +124,10 @@ void Injections::Form::on_btnSendInjection_clicked()
     }
     else
     {
+        if (plugin->getInjectionGroups().size() > ui->cmbInjGroup->currentIndex())
+        {
+            plugin->getInjectionGroups().at(ui->cmbInjGroup->currentIndex()).injections.push_back(injection);
+        }
         addInjectionToTable(injection);
     }
 }
@@ -166,6 +171,7 @@ void Injections::Form::on_tblInjections_cellDoubleClicked(int row, int column)
 
 void Injections::Form::addInjectionToTable(QStringList injection)
 {
+    m_addingInjections = 1;
     ui->tblInjections->setSortingEnabled(false);
 
     ui->tblInjections->setRowCount(ui->tblInjections->rowCount()+1);
@@ -185,6 +191,7 @@ void Injections::Form::addInjectionToTable(QStringList injection)
 
     ui->tblInjections->setSortingEnabled(true);
     ui->tblInjections->resizeColumnsToContents();
+    m_addingInjections = 0;
 }
 
 bool Injections::Form::injectionExistsInTable(QStringList injection)
@@ -227,35 +234,40 @@ bool Injections::Form::injectionExistsInTable(QStringList injection)
     return result;
 }
 
-void Injections::Form::on_injectionsLoaded(std::vector<QStringList> injections)
+void Injections::Form::on_injectionsLoaded()
 {
-    ui->tblInjections->clearContents();
-    ui->tblInjections->setRowCount(0);
-    for (const auto &injection : injections)
+    ui->cmbInjGroup->clear();
+    for (const auto &group : plugin->getInjectionGroups())
     {
-        addInjectionToTable(injection);
+        ui->cmbInjGroup->addItem(group.groupName);
     }
 }
 
 void Injections::Form::on_unloadRequested()
 {
-    if (injectionsFile.open(QFile::WriteOnly | QFile::Truncate))
+    for(auto &&grp : plugin->getInjectionGroups())
     {
-        QTextStream injectionsFileStream(&injectionsFile);
+        saveInjectionGroupToFile(grp);
+    }
+}
 
-        int nRows = ui->tblInjections->rowCount();
-        int nCols = ui->tblInjections->columnCount();
+bool Injections::Form::saveInjectionGroupToFile(InjectionGroup group)
+{
+    QFile file(QCoreApplication::applicationDirPath() + "/injections/" + group.groupName + ".csv");
+    if (file.open(QFile::WriteOnly | QFile::Truncate))
+    {
+        QTextStream injectionsFileStream(&file);
+
+        int nRows = group.injections.size();
 
         for (int r = 0; r< nRows; ++r)
         {
-            for (int c = 1; c< nCols; ++c)
+            int nCols = group.injections[r].size();
+            for (int c = 0; c< nCols; ++c)
             {
-                if(ui->tblInjections->item(r, c))
-                {
-                    injectionsFileStream << ui->tblInjections->item(r, c)->text().trimmed();
-                }
-                if (ui->tblInjections->item(r, c+1) &&
-                        !ui->tblInjections->item(r, c+1)->text().trimmed().isEmpty())
+                injectionsFileStream << group.injections[r].at(c);
+
+                if (c < (nCols-1))
                 {
                     injectionsFileStream << ",";
                 }
@@ -268,6 +280,8 @@ void Injections::Form::on_unloadRequested()
     }
 
     injectionsFile.close();
+
+    return true;
 }
 
 void Injections::Form::on_btnForwardPort_clicked()
@@ -284,14 +298,6 @@ void Injections::Form::on_btnForwardPort_clicked()
                   "forward"<< "tcp:3490" << "tcp:3490";
     QProcess::startDetached(program, parameters);
 #endif
-}
-
-void Injections::Form::on_btnSaveTable_clicked()
-{
-
-    /*save injections to injectionsFile*/
-    qDebug() << __FUNCTION__ << "Storing injections";
-    on_unloadRequested();
 }
 
 void Injections::Form::on_lineEditInjectionTitle_returnPressed()
@@ -326,11 +332,74 @@ void Injections::Form::keyPressEvent ( QKeyEvent * event )
         if(ui->tblInjections->hasFocus())
         {
             auto list = ui->tblInjections->selectionModel()->selectedRows(1);
-            for (auto item : list)
+            for (auto item : qAsConst(list))
             {
                 qDebug() << "Removing " << item.row();
                 ui->tblInjections->model()->removeRow(item.row());
+
+                if (plugin->getInjectionGroups().size() > ui->cmbInjGroup->currentIndex()
+                        && item.row() < plugin->getInjectionGroups().at(ui->cmbInjGroup->currentIndex()).injections.size())
+                {
+                    plugin->getInjectionGroups().at(ui->cmbInjGroup->currentIndex()).injections.remove(item.row());
+                }
             }
         }
     }
 }
+
+void Form::on_cmbInjGroup_currentIndexChanged(int index)
+{
+
+    qDebug() << "index:" << index << "plugin->getInjectionGroups().size(): " << plugin->getInjectionGroups().size();
+    if (index>=0 && index < plugin->getInjectionGroups().size())
+    {
+        ui->tblInjections->clearContents();
+        ui->tblInjections->setRowCount(0);
+        for (auto &injection : plugin->getInjectionGroups().at(index).injections)
+        {
+            addInjectionToTable(injection);
+        }
+    }
+}
+
+
+void Form::on_cmbInjGroup_editTextChanged(const QString &arg1)
+{
+    int index = ui->cmbInjGroup->currentIndex();
+    qDebug() << "index:" << index << ",plugin->getInjectionGroups().size(): " << plugin->getInjectionGroups().size() <<
+                "arg1:" << arg1;
+
+    if (index == plugin->getInjectionGroups().size())
+    {
+        InjectionGroup newGroup;
+        newGroup.groupName = arg1;
+        newGroup.injections.clear();
+        saveInjectionGroupToFile(newGroup);
+        plugin->loadConfig("");
+    }
+}
+
+
+void Form::on_tblInjections_cellChanged(int row, int column)
+{
+    qDebug() << "row changed:" << row << "m_addingInjections:" << m_addingInjections;
+    if(m_addingInjections == 0 && plugin->getInjectionGroups().size() > ui->cmbInjGroup->currentIndex())
+    {
+        auto &injections = plugin->getInjectionGroups().at(ui->cmbInjGroup->currentIndex()).injections;
+        qDebug() << "injections.size():" << injections.size() << "ui->cmbInjGroup->currentIndex():" << ui->cmbInjGroup->currentIndex();
+        if(row < injections.size())
+        {
+            QStringList &inj = injections[row];
+            qDebug() << "inj.size():" << inj.size() << "m_addingInjections:" << m_addingInjections;
+            inj.clear();
+            for(auto col = 1 ; col < ui->tblInjections->columnCount(); ++col)
+            {
+                if(ui->tblInjections->item(row, col) && ui->tblInjections->item(row, col)->text().size())
+                {
+                    inj << ui->tblInjections->item(row, col)->text();
+                }
+            }
+        }
+    }
+}
+
