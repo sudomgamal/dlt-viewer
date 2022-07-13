@@ -12,14 +12,20 @@ TARGET = $$qtLibraryTarget(savedinjectionsplugin)
 
 # plugin header files
 HEADERS += \
+    advancedoptions.h \
     form.h \
-    injectionsplugin.h
+    injectionsplugin.h \
+    newgroupdata.h
 
 # plugin source files
 SOURCES += \
+    advancedoptions.cpp \
     form.cpp \
-    injectionsplugin.cpp
+    injectionsplugin.cpp \
+    newgroupdata.cpp
 
 # plugin forms
 FORMS += \
-    form.ui
+    advancedoptions.ui \
+    form.ui \
+    newgroupdata.ui

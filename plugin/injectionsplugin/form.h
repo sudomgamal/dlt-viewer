@@ -23,8 +23,16 @@
 #include <QWidget>
 #include <QTableWidgetItem>
 #include <QFile>
+#include "advancedoptions.h"
+#include "newgroupdata.h"
 
 class InjectionsPlugin;
+
+struct InjectionGroup
+{
+    QString groupName;
+    QVector<QStringList> injections;
+};
 
 namespace Injections {
     namespace Ui {
@@ -44,25 +52,40 @@ protected:
     void keyPressEvent ( QKeyEvent * event );
 private:
     Ui::Form *ui;
+    advancedOptions m_advancedOptions;
     InjectionsPlugin *plugin;
     QFile injectionsFile;
+    QAtomicInt m_addingInjections = 0;
+    QString m_configurationDirectory;
     bool findItemInColumn(int column, QString text);
 
 public slots:
-    void on_injectionsLoaded(std::vector<QStringList> injections);
+    void on_injectionsLoaded();
     void on_unloadRequested();
+
+    bool saveInjectionGroupToFile(InjectionGroup group);
+private slots:
+    void on_tblInjections_cellChanged(int row, int column);
+
+private slots:
+    void on_cmbInjGroup_editTextChanged(const QString &arg1);
+
+private slots:
+    void on_cmbInjGroup_currentIndexChanged(int index);
+
 private slots:
     void on_btnSendInjection_clicked();
     void on_tblInjections_cellDoubleClicked(int row, int column);
     void addInjectionToTable(QStringList injection);
     bool injectionExistsInTable(QStringList injection);
     void on_btnForwardPort_clicked();
-    void on_btnSaveTable_clicked();
     void on_lineEditInjectionTitle_returnPressed();
     void on_lineEditApplicationId_returnPressed();
     void on_lineEditContextId_returnPressed();
     void on_lineEditServiceId_returnPressed();
     void on_lineEditData_returnPressed();
+    void on_btnAdvancedOptions_clicked();
+    void on_btnCreateNewGroup_clicked();
 };
 
 } // namespace Injections
