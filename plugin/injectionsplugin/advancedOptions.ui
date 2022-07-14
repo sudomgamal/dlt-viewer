@@ -2,6 +2,9 @@
 <ui version="4.0">
  <class>advancedOptions</class>
  <widget class="QDialog" name="advancedOptions">
+  <property name="enabled">
+   <bool>true</bool>
+  </property>
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -41,7 +44,14 @@
       </widget>
      </item>
      <item>
-      <widget class="QTextEdit" name="confPath"/>
+      <widget class="QTextEdit" name="confPath">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="readOnly">
+        <bool>true</bool>
+       </property>
+      </widget>
      </item>
     </layout>
    </widget>

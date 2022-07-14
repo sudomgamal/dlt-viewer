@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>468</width>
-    <height>164</height>
+    <height>136</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -35,7 +35,14 @@
       </widget>
      </item>
      <item>
-      <widget class="QTextEdit" name="m_newGroupName"/>
+      <widget class="QTextEdit" name="m_newGroupName">
+       <property name="tabStopWidth">
+        <number>80</number>
+       </property>
+       <property name="placeholderText">
+        <string>enter new group name here</string>
+       </property>
+      </widget>
      </item>
     </layout>
    </widget>

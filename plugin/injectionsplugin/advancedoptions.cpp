@@ -1,6 +1,7 @@
 #include "advancedoptions.h"
 #include "ui_advancedoptions.h"
 #include <QDesktopServices>
+#include <QDebug>
 
 advancedOptions::advancedOptions(QWidget *parent) :
     QDialog(parent),
