@@ -88,6 +88,7 @@ MainWindow::MainWindow(QWidget *parent) :
     pulseButtonColor(255, 40, 40),
     isSearchOngoing(false)
 {
+    dltIndexer = NULL;
     settings = QDltSettingsManager::getInstance();
     ui->setupUi(this);
     ui->enableConfigFrame->setVisible(false);
@@ -107,9 +108,6 @@ MainWindow::MainWindow(QWidget *parent) :
     initSignalConnections();
 
     initFileHandling();
-
-    // check and clear index cache if needed
-    settingsDlg->clearIndexCacheAfterDays();
 
     /* Command plugin */
     if(QDltOptManager::getInstance()->isPlugin())
@@ -328,6 +326,7 @@ void MainWindow::initView()
 
     /* Start pulsing the apply changes button, when filters draged&dropped */
     connect(ui->filterWidget, SIGNAL(filterItemDropped()), this, SLOT(filterOrderChanged()));
+    connect(ui->filterWidget, SIGNAL(filterCountChanged()), this, SLOT(filterCountChanged()));
 
     /* initialise statusbar */
     totalBytesRcvd = 0;
@@ -1627,7 +1626,7 @@ void MainWindow::contextLoadingFile(QDltMsg &msg)
 
 void MainWindow::reloadLogFileStop()
 {
- 
+
 }
 
 void MainWindow::reloadLogFileProgressMax(int num)
@@ -1725,7 +1724,7 @@ void MainWindow::reloadLogFileFinishFilter()
     }
 
     // reconnect ecus again
-    connectPreviouslyConnectedECUs();
+    //connectPreviouslyConnectedECUs();
 
     // We might have had readyRead events, which we missed
     readyRead();
@@ -1787,7 +1786,7 @@ void MainWindow::reloadLogFile(bool update, bool multithreaded)
     }
 
     // prevent further receiving any new messages
-    saveAndDisconnectCurrentlyConnectedSerialECUs();
+    // saveAndDisconnectCurrentlyConnectedSerialECUs();
 
     // clear all tables
     ui->tableView->selectionModel()->clear();
@@ -1846,10 +1845,7 @@ void MainWindow::reloadLogFile(bool update, bool multithreaded)
     dltIndexer->setSortByTimeEnabled(QDltSettingsManager::getInstance()->value("startup/sortByTimeEnabled", false).toBool());
     dltIndexer->setSortByTimestampEnabled(QDltSettingsManager::getInstance()->value("startup/sortByTimestampEnabled", false).toBool());
     dltIndexer->setMultithreaded(multithreaded);
-    if(settings->filterCache)
-        dltIndexer->setFilterCache(settings->filterCacheName);
-    else
-        dltIndexer->setFilterCache(QString(""));
+    dltIndexer->setFilterCacheEnabled(settings->filterCache);
 
     // run through all viewer plugins
     // must be run in the UI thread, if some gui actions are performed
@@ -1915,12 +1911,12 @@ void MainWindow::applySettings()
 
     for  (int col=0;col <= ui->tableView->model()->columnCount();col++)
     {
-        switch(col)
+        /*switch(col)
         {
         //override column visibility here
         //FieldNames::SessionId: ui->tableView->setColumnHidden(col,true);
-        default:ui->tableView->setColumnHidden(col, !(FieldNames::getColumnShown((FieldNames::Fields)col,settings)));
-        }
+        }*/
+        ui->tableView->setColumnHidden(col, !(FieldNames::getColumnShown((FieldNames::Fields)col,settings)));
     }
     //Removing lines which are unlinkely to be necessary for a search. Maybe make configurable.
     //Ideally possible with right-click
@@ -1946,6 +1942,10 @@ void MainWindow::applySettings()
     {
         draw_interval = 1000 / DEFAULT_REFRESH_RATE;
     }
+
+    // disable or enable filter cache
+    if(dltIndexer)
+        dltIndexer->setFilterCacheEnabled(settings->filterCache);
 }
 
 
@@ -2011,6 +2011,11 @@ void MainWindow::on_actionFindNext()
            list.append(searchTextbox->text());
        }
     QString title = "Search Results";
+
+    if ( 0 < m_searchtableModel->get_SearchResultListSize())
+    {
+        title = QString("Search Results: %L1").arg(m_searchtableModel->get_SearchResultListSize());
+    }
     ui->dockWidgetSearchIndex->setWindowTitle(title);
     ui->dockWidgetSearchIndex->show();
     m_CompleterModel.setStringList(list);
@@ -2106,6 +2111,8 @@ bool MainWindow::openDlpFile(QString fileName)
 
         /* After loading the project file update the filters */
         filterUpdate();
+        /* and update UI elements for filters */
+        on_filterWidget_itemSelectionChanged();
 
         /* Finally, enable the 'Apply' button, if needed */
         if((QDltSettingsManager::getInstance()->value("startup/pluginsEnabled", true).toBool()) || anyFiltersEnabled())
@@ -2166,7 +2173,7 @@ QStringList MainWindow::getAvailableSerialPorts()
     QList<QSerialPortInfo> ports = QSerialPortInfo::availablePorts();
     QStringList portList;
 
-    for (int i = 0; i < ports.size(); i++) 
+    for (int i = 0; i < ports.size(); i++)
     {
         portList << ports.at(i).portName();
     }
@@ -2207,6 +2214,7 @@ QStringList MainWindow::getAvailableNetworkInterfaces()
 
 void MainWindow::on_action_menuConfig_ECU_Add_triggered()
 {
+    //qDebug() << "on_action_menuConfig_ECU_Add_triggered" << __LINE__ << __FILE__;
     static int autoconnect = 1;
     int okorcancel = 1;
     QStringList hostnameListPreset;
@@ -2718,6 +2726,10 @@ void MainWindow::on_configWidget_customContextMenuRequested(QPoint pos)
         connect(action, SIGNAL(triggered()), this, SLOT(on_action_menuConfig_Application_Add_triggered()));
         menu.addAction(action);
 
+        action = new QAction("Save IDs as csv", this);
+        connect(action, SIGNAL(triggered()), this, SLOT(on_action_menuConfig_Save_All_ECUs_triggered()));
+        menu.addAction(action);
+
         menu.addSeparator();
 
         action = new QAction("ECU Connect", this);
@@ -2915,6 +2927,13 @@ void MainWindow::on_filterWidget_customContextMenuRequested(QPoint pos)
         action->setEnabled(false);
     else
         connect(action, SIGNAL(triggered()), this, SLOT(on_action_menuFilter_Delete_triggered()));
+    menu.addAction(action);
+
+    action = new QAction("Filter Clear all", this);
+    if(list.size() != 1)
+        action->setEnabled(false);
+    else
+        connect(action, SIGNAL(triggered()), this, SLOT(on_action_menuFilter_Clear_all_triggered()));
     menu.addAction(action);
 
     menu.addSeparator();
@@ -3351,7 +3370,9 @@ void MainWindow::disconnected()
     for(int num = 0; num < project.ecu->topLevelItemCount (); num++)
     {
         EcuItem *ecuitem = (EcuItem*)project.ecu->topLevelItem(num);
-        if( ecuitem && ecuitem->socket == sender())
+        if( ecuitem &&
+            (ecuitem->interfacetype == EcuItem::INTERFACETYPE_TCP || ecuitem->interfacetype == EcuItem::INTERFACETYPE_UDP) &&
+            ecuitem->socket == sender())
         {
             switch (ecuitem->interfacetype)
             {
@@ -3437,16 +3458,15 @@ void MainWindow::error(QAbstractSocket::SocketError /* socketError */)
     for(int num = 0; num < project.ecu->topLevelItemCount (); num++)
     {
         EcuItem *ecuitem = (EcuItem*)project.ecu->topLevelItem(num);
-        if( ecuitem && ecuitem->socket == sender())
+        if( ecuitem &&
+            (ecuitem->interfacetype == EcuItem::INTERFACETYPE_TCP || ecuitem->interfacetype == EcuItem::INTERFACETYPE_UDP) &&
+            ecuitem->socket == sender())
         {
             /* save error */
             ecuitem->connectError = ecuitem->socket->errorString();
             qDebug() << "Socket connection error" << ecuitem->socket->errorString() << "for" << ecuitem->getHostname() << "on" << ecuitem->getIpport();// << __LINE__ << __FILE__;
-            if(ecuitem->interfacetype == EcuItem::INTERFACETYPE_TCP || ecuitem->interfacetype == EcuItem::INTERFACETYPE_UDP)
-            {
-                /* disconnect socket */
-                ecuitem->socket->disconnectFromHost();
-            }
+            /* disconnect socket */
+            ecuitem->socket->disconnectFromHost();
 
             /* update connection state */
             ecuitem->connected = false;
@@ -3469,7 +3489,7 @@ void MainWindow::readyRead()
         for(int num = 0; num < project.ecu->topLevelItemCount (); num++)
         {
             EcuItem *ecuitem = (EcuItem*)project.ecu->topLevelItem(num);
-            if( ecuitem && (ecuitem->socket == sender() || ecuitem->m_serialport == sender() || dltIndexer == sender() ) && ( true == ecuitem->connected ) )
+            if( ecuitem && (ecuitem->socket == sender() || ecuitem->m_serialport == sender() || dltIndexer == sender() ) && ( true == ecuitem->connected || (ecuitem->interfacetype == EcuItem::INTERFACETYPE_UDP ) ) )
             {
                 read(ecuitem);
             }
@@ -3773,7 +3793,7 @@ void MainWindow::updateIndex()
             item = activeViewerPlugins.at(i);
             item->updateMsg(num,qmsg);
       }
-     } 
+     }
 
      if ( true == pluginsEnabled ) // we check the general plugin enabled/disabled switch
       {
@@ -3792,7 +3812,7 @@ void MainWindow::updateIndex()
             item = activeViewerPlugins[i];
             item->updateMsgDecoded(num,qmsg);
       }
-     } 
+     }
     }
 
     if (!draw_timer.isActive())
@@ -3966,7 +3986,6 @@ void MainWindow::controlMessage_ReceiveControlMessage(EcuItem *ecuitem, QDltMsg 
             uint16_t count_app_ids=0,count_app_ids_tmp=0;
             DLT_MSG_READ_VALUE(count_app_ids_tmp,ptr,length,uint16_t);
             count_app_ids=DLT_ENDIAN_GET_16(((msg.getEndianness()==QDltMsg::DltEndiannessBigEndian)?DLT_HTYP_MSBF:0), count_app_ids_tmp);
-
             for (int32_t num=0;num<count_app_ids;num++)
             {
                 char apid[DLT_ID_SIZE+1];
@@ -4981,7 +5000,6 @@ void MainWindow::controlMessage_SetApplication(EcuItem *ecuitem, QString apid, Q
         {
             appitem->description = appdescription;
             appitem->update();
-
             return;
         }
     }
@@ -4992,11 +5010,14 @@ void MainWindow::controlMessage_SetApplication(EcuItem *ecuitem, QString apid, Q
     appitem->description = appdescription;
     appitem->update();
     ecuitem->addChild(appitem);
+
 }
 
 void MainWindow::controlMessage_SetContext(EcuItem *ecuitem, QString apid, QString ctid,QString ctdescription,int log_level,int trace_status)
 {
     /* First try to find existing context */
+    //qDebug() << "New CTX for" << apid << ctid << ctdescription;
+
     for(int numapp = 0; numapp < ecuitem->childCount(); numapp++)
     {
         ApplicationItem * appitem = (ApplicationItem *) ecuitem->child(numapp);
@@ -5153,7 +5174,7 @@ void MainWindow::on_action_menuHelp_Info_triggered()
                          #else
                              QString("Architecture: Little Endian\n\n")+
                          #endif
-                             QString("(C) 2016 BMW AG\n"));
+                             QString("(C) 2016,2022 BMW AG\n"));
 }
 
 
@@ -6207,7 +6228,10 @@ void MainWindow::on_action_menuFilter_Load_triggered()
     QString fileName = QFileDialog::getOpenFileName(this,
         tr("Load DLT Filter file"), workingDirectory.getDlfDirectory(), tr("DLT Filter Files (*.dlf);;All files (*.*)"));
 
-    openDlfFile(fileName,true);
+    if(!fileName.isEmpty())
+    {
+        openDlfFile(fileName,true);
+    }
 }
 
 void MainWindow::on_action_menuFilter_Add_triggered() {
@@ -6387,37 +6411,13 @@ void MainWindow::on_action_menuFilter_Edit_triggered()
 
 void MainWindow::on_action_menuFilter_Delete_triggered()
 {
-    QTreeWidget *widget;
-
-    /* get currently visible filter list in user interface */
-    if(ui->tabPFilter->isVisible()) {
-        widget = project.filter;
-    }
-    else
+    /* skip delete action if filter list is not visible */
+    if(!ui->tabPFilter->isVisible()) {
         return;
-
-    /* get selected filter from list */
-    QList<QTreeWidgetItem *> list = widget->selectedItems();
-    if((list.count() == 1) ) {
-        /* delete filter */
-        FilterItem *item = (FilterItem *)widget->takeTopLevelItem(widget->indexOfTopLevelItem(list.at(0)));
-        filterUpdate();
-        if(item->filter.isMarker())
-        {
-            tableModel->modelChanged();
-        }
-        else
-        {
-            applyConfigEnabled(true);
-        }
-        delete widget->takeTopLevelItem(widget->indexOfTopLevelItem(list.at(0)));
-    }
-    else
-    {
-        QMessageBox::warning(0, QString("DLT Viewer"), QString("No Filter selected!"));
     }
 
-    on_filterWidget_itemSelectionChanged();
+    FilterTreeWidget* filterWidget = static_cast<FilterTreeWidget*>(project.filter);
+    filterWidget->deleteSelected();
 }
 
 void MainWindow::onactionmenuFilter_SetAllActiveTriggered()
@@ -6848,6 +6848,40 @@ void MainWindow::on_action_menuConfig_Collapse_All_ECUs_triggered()
     ui->configWidget->collapseAll();
 }
 
+
+void MainWindow::on_action_menuConfig_Save_All_ECUs_triggered()
+{
+    QString filename = QFileDialog::getSaveFileName(this, tr("Save DLT Filters"), workingDirectory.getDltDirectory(), tr("Save APID/CTID list (*.csv);;All files (*.*)"));
+    QFile asciiFile(filename);
+    asciiFile.open(QIODevice::WriteOnly);
+
+    // go over ECU Items
+    for(int num = 0; num < project.ecu->topLevelItemCount (); num++)
+    {
+        EcuItem *ecuitem = (EcuItem*)project.ecu->topLevelItem(num);
+        if ( NULL == ecuitem)
+            return;
+        asciiFile.write(QString("ECU;%1\n").arg(ecuitem->id).toLatin1().constData());
+        // go over APIDs
+        for(int numapp = 0; numapp < ecuitem->childCount(); numapp++)
+        {
+            ApplicationItem * appitem = (ApplicationItem *) ecuitem->child(numapp);
+            asciiFile.write(QString("%1;;%2\n").arg(appitem->id).arg(appitem->description).toLatin1().constData());
+            // go over CTIDs
+            for(int numcontext = 0; numcontext < appitem->childCount(); numcontext++)
+            {
+                ContextItem * conitem = (ContextItem *) appitem->child(numcontext);
+                    /* set new log level and trace status */
+                    asciiFile.write(QString(";%1;%2\n").arg(conitem->id).arg(conitem->description).toLatin1().constData());
+                }
+            }
+        }
+    asciiFile.close();
+}
+
+
+
+
 void MainWindow::on_action_menuConfig_Expand_All_ECUs_triggered()
 {
     ui->configWidget->expandAll();
@@ -7231,6 +7265,18 @@ void MainWindow::filterOrderChanged()
     tableModel->modelChanged();
 }
 
+void MainWindow::filterCountChanged()
+{
+    // update filters on the DLT file itself
+    filterUpdate();
+    // update the currently shown table
+    tableModel->modelChanged();
+    // enable the "Apply" button
+    applyConfigEnabled(true);
+    // update the menu entries based on current selection
+    on_filterWidget_itemSelectionChanged();
+}
+
 void MainWindow::searchTableRenewed()
 {
     if ( 0 < m_searchtableModel->get_SearchResultListSize())
@@ -7259,14 +7305,7 @@ void MainWindow::searchtable_cellSelected( QModelIndex index)
 
 void MainWindow::on_comboBoxFilterSelection_activated(const QString &arg1)
 {
-    /* check if not "no default filter" item selected */
-    if(ui->comboBoxFilterSelection->currentIndex()==0)
-    {
-        /* reset all default filter index */
-        defaultFilter.clearFilterIndex();
-
-        return;
-    }
+    qDebug() << "on_comboBoxFilterSelection_activated" << arg1;
 
     /* load current selected filter */
     if(!arg1.isEmpty() && project.LoadFilter(arg1,!ui->checkBoxAppendDefaultFilter->isChecked()))
@@ -7274,41 +7313,11 @@ void MainWindow::on_comboBoxFilterSelection_activated(const QString &arg1)
         workingDirectory.setDlfDirectory(QFileInfo(arg1).absolutePath());
         setCurrentFilters(arg1);
 
-        /* if filter index already stored default filter cache, use index from cache */
-        QDltFilterIndex *index = defaultFilter.defaultFilterIndex[ui->comboBoxFilterSelection->currentIndex()-1];
+       /* Activate filter and create index there as usual */
+       on_applyConfig_clicked();
 
-        /* check if filename and qfile size is matching cache entry */
-        if(index->allIndexSize == qfile.size() &&
-           index->dltFileName == qfile.getFileName())
-        {
-            /* save selection */
-            saveSelection();
-
-            /* filter index cache found */
-            /* copy index into file */
-            qfile.setIndexFilter(index->indexFilter);
-
-            /* update ui */
-            applyConfigEnabled(false);
-            filterUpdate();
-            tableModel->modelChanged();
-            m_searchtableModel->modelChanged();
-            restoreSelection();
-        }
-        else
-        {
-            /* filter index cache not found */
-            /* Activate filter and create index there as usual */
-            on_applyConfig_clicked();
-
-            /* Now store the created index in the default filter cache */
-            QDltFilterIndex *index = defaultFilter.defaultFilterIndex[ui->comboBoxFilterSelection->currentIndex()-1];
-            index->setIndexFilter(qfile.getIndexFilter());
-            index->setDltFileName(qfile.getFileName());
-            index->setAllIndexSize(qfile.size());
-        }
-        ui->tabWidget->setCurrentWidget(ui->tabPFilter);
-        on_filterWidget_itemSelectionChanged();
+       ui->tabWidget->setCurrentWidget(ui->tabPFilter);
+       on_filterWidget_itemSelectionChanged();
     }
 }
 

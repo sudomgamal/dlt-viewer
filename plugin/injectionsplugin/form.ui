@@ -1,255 +1,255 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Injections::Form</class>
- <widget class="QWidget" name="Injections::Form">
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>737</width>
-    <height>649</height>
-   </rect>
-  </property>
-  <property name="focusPolicy">
-   <enum>Qt::StrongFocus</enum>
-  </property>
-  <property name="windowTitle">
-   <string>Form</string>
-  </property>
-  <layout class="QVBoxLayout" name="verticalLayout_2">
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout">
-     <item>
-      <widget class="QLabel" name="label_5">
-       <property name="text">
-        <string>Connection</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QComboBox" name="comboBoxConnections">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="btnForwardPort">
-       <property name="text">
-        <string>ADB Forward Port</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <layout class="QHBoxLayout" name="horizontalLayout_3">
-     <item>
-      <widget class="QLabel" name="label_7">
-       <property name="text">
-        <string>Injection Group</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QComboBox" name="cmbInjGroup">
-       <property name="sizePolicy">
-        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-         <horstretch>0</horstretch>
-         <verstretch>0</verstretch>
-        </sizepolicy>
-       </property>
-       <property name="editable">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="btnCreateNewGroup">
-       <property name="text">
-        <string>Create New Group</string>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="btnAdvancedOptions">
-       <property name="text">
-        <string>Advanced</string>
-       </property>
-      </widget>
-     </item>
-    </layout>
-   </item>
-   <item>
-    <widget class="QTableWidget" name="tblInjections">
-     <property name="sizeAdjustPolicy">
-      <enum>QAbstractScrollArea::AdjustToContentsOnFirstShow</enum>
-     </property>
-     <property name="editTriggers">
-      <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
-     </property>
-     <property name="tabKeyNavigation">
-      <bool>false</bool>
-     </property>
-     <property name="showDropIndicator" stdset="0">
-      <bool>true</bool>
-     </property>
-     <property name="alternatingRowColors">
-      <bool>true</bool>
-     </property>
-     <property name="selectionMode">
-      <enum>QAbstractItemView::SingleSelection</enum>
-     </property>
-     <property name="selectionBehavior">
-      <enum>QAbstractItemView::SelectRows</enum>
-     </property>
-     <property name="showGrid">
-      <bool>true</bool>
-     </property>
-     <property name="sortingEnabled">
-      <bool>true</bool>
-     </property>
-     <property name="cornerButtonEnabled">
-      <bool>false</bool>
-     </property>
-     <property name="rowCount">
-      <number>0</number>
-     </property>
-     <property name="columnCount">
-      <number>6</number>
-     </property>
-     <attribute name="verticalHeaderVisible">
-      <bool>false</bool>
-     </attribute>
-     <column/>
-     <column/>
-     <column/>
-     <column/>
-     <column/>
-     <column/>
-    </widget>
-   </item>
-   <item>
-    <layout class="QVBoxLayout" name="verticalLayout">
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_4">
-       <item>
-        <widget class="QLabel" name="label_6">
-         <property name="text">
-          <string>Injection title</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="lineEditInjectionTitle">
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_5">
-       <item>
-        <widget class="QLabel" name="label">
-         <property name="text">
-          <string>ApplicationId:</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="lineEditApplicationId">
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_6">
-       <item>
-        <widget class="QLabel" name="label_2">
-         <property name="text">
-          <string>ContextId:</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="lineEditContextId">
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_7">
-       <item>
-        <widget class="QLabel" name="label_3">
-         <property name="text">
-          <string>ServiceId:</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="lineEditServiceId">
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_8">
-       <item>
-        <widget class="QLabel" name="label_4">
-         <property name="text">
-          <string>Data:</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QLineEdit" name="lineEditData">
-         <property name="text">
-          <string/>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-     <item>
-      <layout class="QHBoxLayout" name="horizontalLayout_2">
-       <item>
-        <widget class="QPushButton" name="btnSendInjection">
-         <property name="text">
-          <string>Send Injection</string>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </item>
-    </layout>
-   </item>
-  </layout>
- </widget>
- <tabstops>
-  <tabstop>lineEditInjectionTitle</tabstop>
-  <tabstop>lineEditApplicationId</tabstop>
-  <tabstop>lineEditContextId</tabstop>
-  <tabstop>lineEditServiceId</tabstop>
-  <tabstop>lineEditData</tabstop>
-  <tabstop>btnSendInjection</tabstop>
-  <tabstop>tblInjections</tabstop>
-  <tabstop>comboBoxConnections</tabstop>
-  <tabstop>btnForwardPort</tabstop>
- </tabstops>
- <resources/>
- <connections/>
+     <class>Injections::Form</class>
+     <widget class="QWidget" name="Injections::Form">
+          <property name="geometry">
+               <rect>
+                    <x>0</x>
+                    <y>0</y>
+                    <width>737</width>
+                    <height>649</height>
+               </rect>
+          </property>
+          <property name="focusPolicy">
+               <enum>Qt::StrongFocus</enum>
+          </property>
+          <property name="windowTitle">
+               <string>Form</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_2">
+               <item>
+                    <layout class="QHBoxLayout" name="horizontalLayout">
+                         <item>
+                              <widget class="QLabel" name="label_5">
+                                   <property name="text">
+                                        <string>Connection</string>
+                                   </property>
+                              </widget>
+                         </item>
+                         <item>
+                              <widget class="QComboBox" name="comboBoxConnections">
+                                   <property name="sizePolicy">
+                                        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                                             <horstretch>0</horstretch>
+                                             <verstretch>0</verstretch>
+                                        </sizepolicy>
+                                   </property>
+                              </widget>
+                         </item>
+                         <item>
+                              <widget class="QPushButton" name="btnForwardPort">
+                                   <property name="text">
+                                        <string>ADB Forward Port</string>
+                                   </property>
+                              </widget>
+                         </item>
+                    </layout>
+               </item>
+               <item>
+                    <layout class="QHBoxLayout" name="horizontalLayout_3">
+                         <item>
+                              <widget class="QLabel" name="label_7">
+                                   <property name="text">
+                                        <string>Injection Group</string>
+                                   </property>
+                              </widget>
+                         </item>
+                         <item>
+                              <widget class="QComboBox" name="cmbInjGroup">
+                                   <property name="sizePolicy">
+                                        <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                                             <horstretch>0</horstretch>
+                                             <verstretch>0</verstretch>
+                                        </sizepolicy>
+                                   </property>
+                                   <property name="editable">
+                                        <bool>true</bool>
+                                   </property>
+                              </widget>
+                         </item>
+                         <item>
+                              <widget class="QPushButton" name="btnCreateNewGroup">
+                                   <property name="text">
+                                        <string>Create New Group</string>
+                                   </property>
+                              </widget>
+                         </item>
+                         <item>
+                              <widget class="QPushButton" name="btnAdvancedOptions">
+                                   <property name="text">
+                                        <string>Advanced</string>
+                                   </property>
+                              </widget>
+                         </item>
+                    </layout>
+               </item>
+               <item>
+                    <widget class="QTableWidget" name="tblInjections">
+                         <property name="sizeAdjustPolicy">
+                              <enum>QAbstractScrollArea::AdjustToContentsOnFirstShow</enum>
+                         </property>
+                         <property name="editTriggers">
+                              <set>QAbstractItemView::DoubleClicked|QAbstractItemView::EditKeyPressed</set>
+                         </property>
+                         <property name="tabKeyNavigation">
+                              <bool>false</bool>
+                         </property>
+                         <property name="showDropIndicator" stdset="0">
+                              <bool>true</bool>
+                         </property>
+                         <property name="alternatingRowColors">
+                              <bool>true</bool>
+                         </property>
+                         <property name="selectionMode">
+                              <enum>QAbstractItemView::SingleSelection</enum>
+                         </property>
+                         <property name="selectionBehavior">
+                              <enum>QAbstractItemView::SelectRows</enum>
+                         </property>
+                         <property name="showGrid">
+                              <bool>true</bool>
+                         </property>
+                         <property name="sortingEnabled">
+                              <bool>true</bool>
+                         </property>
+                         <property name="cornerButtonEnabled">
+                              <bool>false</bool>
+                         </property>
+                         <property name="rowCount">
+                              <number>0</number>
+                         </property>
+                         <property name="columnCount">
+                              <number>6</number>
+                         </property>
+                         <attribute name="verticalHeaderVisible">
+                              <bool>false</bool>
+                         </attribute>
+                         <column/>
+                         <column/>
+                         <column/>
+                         <column/>
+                         <column/>
+                         <column/>
+                    </widget>
+               </item>
+               <item>
+                    <layout class="QVBoxLayout" name="verticalLayout">
+                         <item>
+                              <layout class="QHBoxLayout" name="horizontalLayout_4">
+                                   <item>
+                                        <widget class="QLabel" name="label_6">
+                                             <property name="text">
+                                                  <string>Injection title</string>
+                                             </property>
+                                        </widget>
+                                   </item>
+                                   <item>
+                                        <widget class="QLineEdit" name="lineEditInjectionTitle">
+                                             <property name="text">
+                                                  <string/>
+                                             </property>
+                                        </widget>
+                                   </item>
+                              </layout>
+                         </item>
+                         <item>
+                              <layout class="QHBoxLayout" name="horizontalLayout_5">
+                                   <item>
+                                        <widget class="QLabel" name="label">
+                                             <property name="text">
+                                                  <string>ApplicationId:</string>
+                                             </property>
+                                        </widget>
+                                   </item>
+                                   <item>
+                                        <widget class="QLineEdit" name="lineEditApplicationId">
+                                             <property name="text">
+                                                  <string/>
+                                             </property>
+                                        </widget>
+                                   </item>
+                              </layout>
+                         </item>
+                         <item>
+                              <layout class="QHBoxLayout" name="horizontalLayout_6">
+                                   <item>
+                                        <widget class="QLabel" name="label_2">
+                                             <property name="text">
+                                                  <string>ContextId:</string>
+                                             </property>
+                                        </widget>
+                                   </item>
+                                   <item>
+                                        <widget class="QLineEdit" name="lineEditContextId">
+                                             <property name="text">
+                                                  <string/>
+                                             </property>
+                                        </widget>
+                                   </item>
+                              </layout>
+                         </item>
+                         <item>
+                              <layout class="QHBoxLayout" name="horizontalLayout_7">
+                                   <item>
+                                        <widget class="QLabel" name="label_3">
+                                             <property name="text">
+                                                  <string>ServiceId:</string>
+                                             </property>
+                                        </widget>
+                                   </item>
+                                   <item>
+                                        <widget class="QLineEdit" name="lineEditServiceId">
+                                             <property name="text">
+                                                  <string/>
+                                             </property>
+                                        </widget>
+                                   </item>
+                              </layout>
+                         </item>
+                         <item>
+                              <layout class="QHBoxLayout" name="horizontalLayout_8">
+                                   <item>
+                                        <widget class="QLabel" name="label_4">
+                                             <property name="text">
+                                                  <string>Data:</string>
+                                             </property>
+                                        </widget>
+                                   </item>
+                                   <item>
+                                        <widget class="QLineEdit" name="lineEditData">
+                                             <property name="text">
+                                                  <string/>
+                                             </property>
+                                        </widget>
+                                   </item>
+                              </layout>
+                         </item>
+                         <item>
+                              <layout class="QHBoxLayout" name="horizontalLayout_2">
+                                   <item>
+                                        <widget class="QPushButton" name="btnSendInjection">
+                                             <property name="text">
+                                                  <string>Send Injection</string>
+                                             </property>
+                                        </widget>
+                                   </item>
+                              </layout>
+                         </item>
+                    </layout>
+               </item>
+          </layout>
+     </widget>
+     <tabstops>
+          <tabstop>lineEditInjectionTitle</tabstop>
+          <tabstop>lineEditApplicationId</tabstop>
+          <tabstop>lineEditContextId</tabstop>
+          <tabstop>lineEditServiceId</tabstop>
+          <tabstop>lineEditData</tabstop>
+          <tabstop>btnSendInjection</tabstop>
+          <tabstop>tblInjections</tabstop>
+          <tabstop>comboBoxConnections</tabstop>
+          <tabstop>btnForwardPort</tabstop>
+     </tabstops>
+     <resources/>
+     <connections/>
 </ui>

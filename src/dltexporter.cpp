@@ -17,6 +17,8 @@ DltExporter::DltExporter(QObject *parent) :
     selection = NULL;
     exportFormat = FormatDlt;
     exportSelection = SelectionAll;
+    starting_index=0;
+    stoping_index=0;
 }
 
 QString DltExporter::escapeCSVValue(QString arg)
@@ -162,6 +164,12 @@ bool DltExporter::finish()
     {
         /* export to clipboard */
         QClipboard *clipboard = QApplication::clipboard();
+
+        /*remove '\n' from the string*/
+        if (clipboardString.endsWith('\n'))
+        {
+            clipboardString.resize(clipboardString.size() - 1);
+        }
         clipboard->setText(clipboardString);
     }
 
@@ -224,7 +232,7 @@ bool DltExporter::exportMsg(unsigned long int num, QDltMsg &msg, QByteArray &buf
             text += msg.toStringHeader();
             text += " ";
         }
-        text += msg.toStringPayload().simplified();
+        text += msg.toStringPayload().trimmed();
         text += "\n";
         try
          {
