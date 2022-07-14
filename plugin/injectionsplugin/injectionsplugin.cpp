@@ -121,7 +121,6 @@ bool InjectionsPlugin::loadConfig(QString dirPath)
     return true;
 }
 
-
 bool InjectionsPlugin::readInjectionsFromFile(QVector<QStringList> &injections, const QString& filename)
 {
     if ( filename.length() <= 0 )

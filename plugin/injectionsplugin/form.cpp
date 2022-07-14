@@ -36,6 +36,7 @@ Form::Form(InjectionsPlugin *_plugin,QWidget *parent) :
     plugin = _plugin;
     connect(plugin, &InjectionsPlugin::injectionsLoaded, this, &Injections::Form::on_injectionsLoaded);
     connect(plugin, &InjectionsPlugin::unloadRequested, this, &Injections::Form::on_unloadRequested);
+    // connect(plugin, &InjectionsPlugin::unloadRequested, this, &Form::on_unloadRequested);
 
     QTableWidgetItem *tblItem = new QTableWidgetItem("");
     ui->tblInjections->setHorizontalHeaderItem(0, tblItem);
@@ -58,6 +59,7 @@ Form::Form(InjectionsPlugin *_plugin,QWidget *parent) :
     ui->tblInjections->resizeColumnsToContents();
     plugin->loadConfig(m_configurationDirectory);
     m_advancedOptions.updateConfigurationPath(m_configurationDirectory);
+    // plugin->loadConfig(injectionsFile.fileName());
 }
 
 Form::~Form()

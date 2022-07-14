@@ -472,6 +472,7 @@ private slots:
     void on_action_menuConfig_Copy_to_clipboard_triggered();
     void onActionMenuConfigSearchTableCopyToClipboardTriggered();
     void onActionMenuConfigSearchTableCopyPayloadToClipboardTriggered();
+    void on_action_menuConfig_Save_All_ECUs_triggered();
 
     // DLT methods
     void on_action_menuDLT_Send_Injection_triggered();
@@ -561,6 +562,7 @@ public slots:
 
     void sendInjection(int index,QString applicationId,QString contextId,int serviceId,QByteArray data);
     void filterOrderChanged();
+    void filterCountChanged();
     void jumpToMsgSignal(int index);
     void markerSignal();
     void connectEcuSignal(int index);

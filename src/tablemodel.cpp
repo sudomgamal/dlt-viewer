@@ -332,13 +332,13 @@ TableModel::TableModel(const QString & /*data*/, QObject *parent)
 
      if ( role == Qt::TextAlignmentRole )
      {
-         switch(index.column())
+        /*switch(index.column())
         {
             //case FieldNames::Index: return QVariant(Qt::AlignRight  | Qt::AlignVCenter);
             default:
-                  return FieldNames::getColumnAlignment((FieldNames::Fields)index.column(),project->settings);
 
-        }
+        }*/
+        return FieldNames::getColumnAlignment((FieldNames::Fields)index.column(),project->settings);
     }
 
      return QVariant();
@@ -355,12 +355,12 @@ QVariant TableModel::headerData(int section, Qt::Orientation orientation,
             return FieldNames::getName((FieldNames::Fields)section, project->settings);
         case Qt::TextAlignmentRole:
             {
-            switch(section)
+            /*switch(section)
                 {
                  //case FieldNames::Payload: return QVariant(Qt::AlignRight  | Qt::AlignVCenter);
-                  default:return FieldNames::getColumnAlignment((FieldNames::Fields)section,project->settings);
-                }
-
+                default:
+                }*/
+            return FieldNames::getColumnAlignment((FieldNames::Fields)section,project->settings);
             }
          default:
             break;
@@ -465,6 +465,12 @@ QSize HtmlDelegate::sizeHint(const QStyleOptionViewItem &option, const QModelInd
 
 QColor TableModel::getMsgBackgroundColor(QDltMsg &msg,int index,long int filterposindex) const
 {
+    /* first check manual markers with highest priority */
+    if ( selectedMarkerRows.contains(index) )
+    {
+      return manualMarkerColor;
+    }
+
     /* get check marker color */
     QColor color = qfile->checkMarker(msg);
     if(color.isValid())
@@ -481,10 +487,6 @@ QColor TableModel::getMsgBackgroundColor(QDltMsg &msg,int index,long int filterp
         if ( searchhit > -1 && searchhit == index )
         {
           return searchhit_higlightColor;
-        }
-        if ( selectedMarkerRows.contains(index) )
-        {
-          return manualMarkerColor;
         }
         if(project->settings->autoMarkFatalError && ( msg.getSubtypeString() == "error" || msg.getSubtypeString() == "fatal") )
         {
