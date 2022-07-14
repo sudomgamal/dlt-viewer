@@ -28,12 +28,15 @@ using namespace Injections;
 Form::Form(InjectionsPlugin *_plugin,QWidget *parent) :
     QWidget(parent),
     ui(new Ui::Form),
-    injectionsFile("injections.csv")
+    m_advancedOptions(this),
+    m_configurationDirectory(QCoreApplication::applicationDirPath()+"/injections")
+    //injectionsFile("injections.csv")
 {
     ui->setupUi(this);
     plugin = _plugin;
     connect(plugin, &InjectionsPlugin::injectionsLoaded, this, &Injections::Form::on_injectionsLoaded);
-    connect(plugin, &InjectionsPlugin::unloadRequested, this, &Form::on_unloadRequested);
+    connect(plugin, &InjectionsPlugin::unloadRequested, this, &Injections::Form::on_unloadRequested);
+    // connect(plugin, &InjectionsPlugin::unloadRequested, this, &Form::on_unloadRequested);
 
     QTableWidgetItem *tblItem = new QTableWidgetItem("");
     ui->tblInjections->setHorizontalHeaderItem(0, tblItem);
@@ -54,7 +57,9 @@ Form::Form(InjectionsPlugin *_plugin,QWidget *parent) :
     ui->tblInjections->setHorizontalHeaderItem(5, tblItem);
 
     ui->tblInjections->resizeColumnsToContents();
-    plugin->loadConfig(injectionsFile.fileName());
+    plugin->loadConfig(m_configurationDirectory);
+    m_advancedOptions.updateConfigurationPath(m_configurationDirectory);
+    // plugin->loadConfig(injectionsFile.fileName());
 }
 
 Form::~Form()
@@ -349,9 +354,10 @@ void Injections::Form::keyPressEvent ( QKeyEvent * event )
 
 void Form::on_cmbInjGroup_currentIndexChanged(int index)
 {
-
+    // if the dropdown list of the injections has changed
     qDebug() << "index:" << index << "plugin->getInjectionGroups().size(): " << plugin->getInjectionGroups().size();
-    if (index>=0 && index < plugin->getInjectionGroups().size())
+    if ((index>=0) &&
+         (index < plugin->getInjectionGroups().size()))
     {
         ui->tblInjections->clearContents();
         ui->tblInjections->setRowCount(0);
@@ -366,7 +372,7 @@ void Form::on_cmbInjGroup_currentIndexChanged(int index)
 void Form::on_cmbInjGroup_editTextChanged(const QString &arg1)
 {
     int index = ui->cmbInjGroup->currentIndex();
-    qDebug() << "index:" << index << ",plugin->getInjectionGroups().size(): " << plugin->getInjectionGroups().size() <<
+    qDebug() << "index:" << index << " ,plugin->getInjectionGroups().size(): " << plugin->getInjectionGroups().size() <<
                 "arg1:" << arg1;
 
     if (index == plugin->getInjectionGroups().size())
@@ -375,7 +381,7 @@ void Form::on_cmbInjGroup_editTextChanged(const QString &arg1)
         newGroup.groupName = arg1;
         newGroup.injections.clear();
         saveInjectionGroupToFile(newGroup);
-        plugin->loadConfig("");
+        plugin->loadConfig(m_configurationDirectory);
     }
 }
 
@@ -403,3 +409,57 @@ void Form::on_tblInjections_cellChanged(int row, int column)
     }
 }
 
+
+void Injections::Form::on_btnAdvancedOptions_clicked()
+{
+    //m_advancedOptions.setModal(true);
+    //m_advancedOptions.exec();
+
+    m_advancedOptions.show();
+}
+
+void Injections::Form::on_btnCreateNewGroup_clicked()
+{
+    qDebug() << "attempting to creating new group window";
+    newGroupData newGroupDataDialog;
+    newGroupDataDialog.setModal(true);
+    newGroupDataDialog.exec();
+    newGroupDataDialog.show();
+
+    // getting the file name
+    QString groupFileName = newGroupDataDialog.getNewGroupName();
+    QString comboBoxName;
+    if(groupFileName.isEmpty())
+    {
+        qDebug() << "new group name is empty!";
+        return;
+    }
+    if(groupFileName.endsWith(".csv"))
+    {
+        comboBoxName = groupFileName;
+        comboBoxName = comboBoxName.remove(".csv");
+        groupFileName = m_configurationDirectory + "/" + groupFileName;
+    }
+    else
+    {
+        comboBoxName = groupFileName;
+        groupFileName = m_configurationDirectory + "/" + groupFileName + ".csv";
+    }
+
+    // create the file
+    QFile newInjectionGroupFile(groupFileName);
+    qDebug() << "creating new injections file for injection group: " << groupFileName;
+    if(newInjectionGroupFile.open(QIODevice::ReadWrite))
+    {
+        qDebug() << "File " << groupFileName  << " successfuly created, reloading configuration files.";
+        plugin->loadConfig(m_configurationDirectory);
+    }
+    else
+    {
+        qDebug() << "Failed to created " << groupFileName << " file.";
+    }
+
+    int newGroupIndex = ui->cmbInjGroup->findText(comboBoxName);
+    qDebug() << groupFileName << " has index: " << newGroupIndex << " in the drop list";
+    ui->cmbInjGroup->setCurrentIndex(newGroupIndex);
+}

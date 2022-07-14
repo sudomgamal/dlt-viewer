@@ -64,26 +64,58 @@ QString InjectionsPlugin::error()
     return QString();
 }
 
-bool InjectionsPlugin::loadConfig(QString  filename )
+bool InjectionsPlugin::loadConfig(QString dirPath)
 {
-    (void)filename;
+    //(void)filename; // unused because we have to implement the pure virtual loadConfig(QString)
     m_injectionGroups.clear();
 
-    QDir directory(QCoreApplication::applicationDirPath()+"/injections");
+    //const QString dirPath = filename;
+    //m_advancedOptions.updateConfigurationPath(dirPath);
+    QDir directory(dirPath);   // get object to the the subfolder "injections" in the dlt folder
 
-    QStringList csvFiles = directory.entryList(QStringList() << "*.csv", QDir::Files);
-    qDebug() << "InjectionsPlugin::loadConfig. files are:" << csvFiles;
-    for(const QString &filename : qAsConst(csvFiles))
+    if(!directory.exists())
     {
-        InjectionGroup grp;
-        grp.groupName = filename.split(".csv",QString::SkipEmptyParts,Qt::CaseInsensitive).at(0);
-        readInjectionsFromFile(grp.injections, directory.absolutePath() + "/" + filename);
-        m_injectionGroups.push_back(grp);
+        qDebug() << "Folder doesn't exist, creating directory: " << dirPath;
+        directory.mkdir(dirPath);
+
+        const QString injectionsFile = dirPath + "/injections.csv";
+        QFile injectionFile(injectionsFile);
+        qDebug() << "creating injections file: " << injectionsFile;
+        if(injectionFile.open(QIODevice::ReadWrite))
+        {
+            qDebug() << "File created.";
+        }
+        else
+        {
+            qDebug() << "Failed to created " << injectionsFile;
+        }
     }
 
-    if (!m_injectionGroups.empty())
+    QStringList nameFilters;
+    nameFilters.append("*csv"); // creat a list of all the files that we want to load, which are any csv (*csv)
+    QStringList csvFiles = directory.entryList(nameFilters, QDir::Files);  // load all csv files in the directory
+    qDebug() << "InjectionsPlugin::loadConfig. files are:" << csvFiles;
+
+    // loop on the csv files one by one to creat a group for each
+    for(const QString &filename : qAsConst(csvFiles))
     {
-        emit injectionsLoaded();
+        qDebug() << "attempting to load: " << filename;
+        if(filename != ".csv")  // this will cause a crash if left unchecked
+        {
+            InjectionGroup grp;
+            grp.groupName = filename.split(".csv",QString::SkipEmptyParts,Qt::CaseInsensitive).at(0);   // get the name of the file without the .csv extention
+            readInjectionsFromFile(grp.injections, directory.absolutePath() + "/" + filename);  // fill the grp object with the injections in one file
+            m_injectionGroups.push_back(grp);   // push back the injections in the file as an injection group entery
+        }
+        else
+        {
+            qWarning() << ".csv file name, ignoring this file.";
+        }
+    }
+
+    if (!m_injectionGroups.empty()) // if the groups are not empty (meaning a csv injections file was found)
+    {
+        emit injectionsLoaded(); // connected to Injections::Form::on_injectionsLoaded
     }
 
     return true;

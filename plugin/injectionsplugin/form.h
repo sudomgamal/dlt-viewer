@@ -23,6 +23,8 @@
 #include <QWidget>
 #include <QTableWidgetItem>
 #include <QFile>
+#include "advancedoptions.h"
+#include "newgroupdata.h"
 
 class InjectionsPlugin;
 
@@ -50,9 +52,11 @@ protected:
     void keyPressEvent ( QKeyEvent * event );
 private:
     Ui::Form *ui;
+    advancedOptions m_advancedOptions;
     InjectionsPlugin *plugin;
     QFile injectionsFile;
     QAtomicInt m_addingInjections = 0;
+    QString m_configurationDirectory;
     bool findItemInColumn(int column, QString text);
 
 public slots:
@@ -80,6 +84,8 @@ private slots:
     void on_lineEditContextId_returnPressed();
     void on_lineEditServiceId_returnPressed();
     void on_lineEditData_returnPressed();
+    void on_btnAdvancedOptions_clicked();
+    void on_btnCreateNewGroup_clicked();
 };
 
 } // namespace Injections

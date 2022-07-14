@@ -46,7 +46,7 @@ public:
     QString pluginInterfaceVersion();
     QString description();
     QString error();
-    bool loadConfig(QString filename);
+    bool loadConfig(QString dirPath);
     bool saveConfig(QString filename);
     QStringList infoConfig();
 
