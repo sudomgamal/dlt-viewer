@@ -189,6 +189,11 @@ void Injections::Form::addInjectionToTable(QStringList injection)
         ui->tblInjections->setItem(ui->tblInjections->rowCount()-1, inj+1, tblItem);
     }
 
+    for(auto &&grp : plugin->getInjectionGroups())
+    {
+        saveInjectionGroupToFile(grp);
+    }
+
     ui->tblInjections->setSortingEnabled(true);
     ui->tblInjections->resizeColumnsToContents();
     m_addingInjections = 0;
@@ -342,6 +347,11 @@ void Injections::Form::keyPressEvent ( QKeyEvent * event )
                 {
                     plugin->getInjectionGroups().at(ui->cmbInjGroup->currentIndex()).injections.remove(item.row());
                 }
+
+                for(auto &&grp : plugin->getInjectionGroups())
+                {
+                    saveInjectionGroupToFile(grp);
+                }
             }
         }
     }
@@ -369,7 +379,7 @@ void Form::on_cmbInjGroup_editTextChanged(const QString &arg1)
     qDebug() << "index:" << index << ",plugin->getInjectionGroups().size(): " << plugin->getInjectionGroups().size() <<
                 "arg1:" << arg1;
 
-    if (index == plugin->getInjectionGroups().size())
+    if (index < plugin->getInjectionGroups().size())
     {
         InjectionGroup newGroup;
         newGroup.groupName = arg1;
@@ -399,7 +409,53 @@ void Form::on_tblInjections_cellChanged(int row, int column)
                     inj << ui->tblInjections->item(row, col)->text();
                 }
             }
+
+            for(auto &&grp : plugin->getInjectionGroups())
+            {
+                saveInjectionGroupToFile(grp);
+            }
         }
     }
+}
+
+
+void Form::on_btnAddGrp_clicked()
+{
+    if(ui->lineEditGroupToAdd->text().isEmpty())
+    {
+        return;
+    }
+
+    InjectionGroup newGrp{ui->lineEditGroupToAdd->text(), QVector<QStringList>()};
+    plugin->getInjectionGroups().push_back(newGrp);
+
+
+    ui->cmbInjGroup->addItem(newGrp.groupName);
+    ui->cmbInjGroup->setCurrentIndex(ui->cmbInjGroup->count()-1);
+    emit ui->cmbInjGroup->currentIndexChanged(ui->cmbInjGroup->count()-1);
+    qDebug() << "ui->cmbInjGroup->count()-1:" << ui->cmbInjGroup->count()-1;
+    for(auto &&grp : plugin->getInjectionGroups())
+    {
+        saveInjectionGroupToFile(grp);
+    }
+}
+
+
+void Form::on_tblInjections_currentItemChanged(QTableWidgetItem *current, QTableWidgetItem *previous)
+{
+    if(!current || current->row() >= ui->tblInjections->rowCount())
+        return;
+
+    int r = current->row();
+    if(ui->tblInjections->item(r, 1))
+        ui->lineEditInjectionTitle->setText(ui->tblInjections->item(r, 1)->text());
+    if(ui->tblInjections->item(r, 2))
+        ui->lineEditApplicationId->setText(ui->tblInjections->item(r, 2)->text());
+    if(ui->tblInjections->item(r, 3))
+        ui->lineEditContextId->setText(ui->tblInjections->item(r, 3)->text());
+    if(ui->tblInjections->item(r, 4))
+        ui->lineEditServiceId->setText(ui->tblInjections->item(r, 4)->text());
+    if(ui->tblInjections->item(r, 5))
+        ui->lineEditData->setText(ui->tblInjections->item(r, 5)->text());
 }
 

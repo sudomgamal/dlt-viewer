@@ -61,6 +61,12 @@ public slots:
 
     bool saveInjectionGroupToFile(InjectionGroup group);
 private slots:
+    void on_tblInjections_currentItemChanged(QTableWidgetItem *current, QTableWidgetItem *previous);
+
+private slots:
+    void on_btnAddGrp_clicked();
+
+private slots:
     void on_tblInjections_cellChanged(int row, int column);
 
 private slots:
