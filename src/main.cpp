@@ -21,6 +21,8 @@
 #include <QApplication>
 #include <QStyleFactory>
 
+#include <windows.h>
+
 #include <qdltoptmanager.h>
 
 #include "mainwindow.h"
@@ -49,7 +51,14 @@ int main(int argc, char *argv[])
     QStringList arguments = a.arguments();
     QDltOptManager *opt = QDltOptManager::getInstance();
     opt->parse(&arguments);
-
+    HWND consoleWnd = GetConsoleWindow();
+    DWORD dwProcessId;
+    GetWindowThreadProcessId(consoleWnd, &dwProcessId);
+    if (GetCurrentProcessId() == dwProcessId)
+    {
+        // user launched the application with a double click from explorer: we do not need console
+        FreeConsole();
+    }
     MainWindow w;
     w.show();
 

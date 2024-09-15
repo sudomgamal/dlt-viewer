@@ -37,6 +37,8 @@ add_subdirectory(dltviewerplugin)
 add_subdirectory(filetransferplugin)
 add_subdirectory(nonverboseplugin)
 add_subdirectory(dltsegmentationplugin)
+add_subdirectory(utilizationplotter)
+# add_subdirectory(DLT-Message-Analyzer/dltmessageanalyzerplugin/src)
 
 option(DLT_DUMMY_PLUGINS "Build Dummy plugins" OFF)
 if(DLT_DUMMY_PLUGINS)
