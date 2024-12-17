@@ -1,6 +1,7 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <QFile>
+#include <QTime>
 
 #include <qdltfile.h>
 #include <qdltfilter.h>
@@ -67,9 +68,11 @@ int main(int argc, char *argv[])
             qDebug() << "### Load MF4 files";
         for ( const auto& i : mf4Files )
         {
-            qDebug() << "Import MF4 File:" << i;
-            QDltImporter importer;
-            importer.dltIpcFromMF4(outputfile,i,0,false);
+            qDebug() << "Import MF4 File:" << i << "ms";
+            QDltImporter importer(&outputfile);
+            //QTime timeStart = QTime::currentTime();
+            importer.dltIpcFromMF4(i);
+            //qDebug() << "Duration:" << timeStart.msecsTo(QTime::currentTime());
         }
         // load PCAP files
         QStringList pcapFiles = opt.getPcapFiles();
@@ -78,8 +81,8 @@ int main(int argc, char *argv[])
         for ( const auto& i : pcapFiles )
         {
             qDebug() << "Import PCAP File:" << i;
-            QDltImporter importer;
-            importer.dltIpcFromPCAP(outputfile,i,0,false);
+            QDltImporter importer(&outputfile);
+            importer.dltIpcFromPCAP(i);
         }
     }
 
@@ -103,7 +106,7 @@ int main(int argc, char *argv[])
         for ( const auto& i : filterFiles )
         {
             qDebug() << "Load DLT Filter:" << i;
-            if(!filterList.LoadFilter(i,true))
+            if(!filterList.LoadFilter(i,false))
                 qDebug() << "ERROR: Failed loading filter:" << i;
             dltFile.setFilterList(filterList);
             dltFile.enableFilter(true);
@@ -115,45 +118,57 @@ int main(int argc, char *argv[])
         qDebug() << "Number of messages:" << dltFile.size();
 
         // Create filter index
-        qDebug() << "### Create filter index";
-        dltFile.setFilterList(filterList);
-        dltFile.createIndexFilter();
-        qDebug() << "Number of messages matching filter:" << dltFile.sizeFilter();
+        //qDebug() << "### Create filter index";
+        //dltFile.setFilterList(filterList);
+        //dltFile.createIndexFilter();
+        //qDebug() << "Number of messages matching filter:" << dltFile.sizeFilter();
 
         if(opt.get_convertionmode()==e_DLT)
         {
-            QFile output(opt.getConvertDestFile());
             qDebug() << "### Convert to DLT";
-            QDltExporter exporter(0,0,0);
+            QDltExporter exporter(&dltFile,opt.getConvertDestFile(),0,QDltExporter::FormatDlt,QDltExporter::SelectionAll,0,1,0,0,opt.getDelimiter());
+            if(opt.isMultifilter())
+                exporter.setMultifilterFilenames(opt.getFilterFiles());
+            else
+                exporter.setFilterList(filterList);
             qDebug() << "Commandline DLT convert to " << opt.getConvertDestFile();
-            exporter.exportMessages(&dltFile,&output,0,QDltExporter::FormatDlt,QDltExporter::SelectionFiltered);
+            exporter.exportMessages();
             qDebug() << "DLT export to DLT file format done";
         }
         if(opt.get_convertionmode()==e_ASCI)
         {
-            QFile output(opt.getConvertDestFile());
             qDebug() << "### Convert to ASCII";
-            QDltExporter exporter(0,0,0);
+            QDltExporter exporter(&dltFile,opt.getConvertDestFile(),0,QDltExporter::FormatAscii,QDltExporter::SelectionAll,0,1,0,0,opt.getDelimiter());
+            if(opt.isMultifilter())
+                exporter.setMultifilterFilenames(opt.getFilterFiles());
+            else
+                exporter.setFilterList(filterList);
             qDebug() << "Commandline ASCII convert to " << opt.getConvertDestFile();
-            exporter.exportMessages(&dltFile,&output,0,QDltExporter::FormatAscii,QDltExporter::SelectionFiltered);
+            exporter.exportMessages();
             qDebug() << "DLT export ASCII done";
         }
         if(opt.get_convertionmode()==e_CSV)
         {
-            QFile output(opt.getConvertDestFile());
             qDebug() << "### Convert to CSV";
-            QDltExporter exporter(0,0,0);
-            qDebug() << "Commandline ASCII convert to " << opt.getConvertDestFile();
-            exporter.exportMessages(&dltFile,&output,0,QDltExporter::FormatCsv,QDltExporter::SelectionFiltered);
+            QDltExporter exporter(&dltFile,opt.getConvertDestFile(),0,QDltExporter::FormatCsv,QDltExporter::SelectionAll,0,1,0,0,opt.getDelimiter());
+            if(opt.isMultifilter())
+                exporter.setMultifilterFilenames(opt.getFilterFiles());
+            else
+                exporter.setFilterList(filterList);
+            qDebug() << "Commandline CSV convert to " << opt.getConvertDestFile();
+            exporter.exportMessages();
             qDebug() << "DLT export CSV done";
         }
         if(opt.get_convertionmode()==e_UTF8)
         {
-            QFile output(opt.getConvertDestFile());
             qDebug() << "### Convert to UTF8";
-            QDltExporter exporter(0,0,0);
+            QDltExporter exporter(&dltFile,opt.getConvertDestFile(),0,QDltExporter::FormatUTF8,QDltExporter::SelectionAll,0,1,0,0,opt.getDelimiter());
+            if(opt.isMultifilter())
+                exporter.setMultifilterFilenames(opt.getFilterFiles());
+            else
+                exporter.setFilterList(filterList);
             qDebug() << "Commandline UTF8 convert to " << opt.getConvertDestFile();
-            exporter.exportMessages(&dltFile,&output,0,QDltExporter::FormatUTF8,QDltExporter::SelectionFiltered);
+            exporter.exportMessages();
             qDebug() << "DLT export UTF8 done";
         }
     }

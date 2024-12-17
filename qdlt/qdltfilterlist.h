@@ -64,6 +64,12 @@ public:
     */
     void clearFilter();
 
+    //! Return true if Filter list is empty
+    /*!
+      This includes all positive and negative filters and markers.
+    */
+    bool isEmpty();
+
     //! Add a filter to the filter list.
     /*!
       \param filter the filter configuration
@@ -83,9 +89,9 @@ public:
       \return 0 if message will not be marked, colour if message will be marked
     */
 #ifdef USECOLOR
-    QColor checkMarker(QDltMsg &msg);
+    QColor checkMarker(const QDltMsg &msg);
 #else
-    QString checkMarker(QDltMsg &msg);
+    QString checkMarker(const QDltMsg &msg);
 #endif
 
 
@@ -121,6 +127,16 @@ public:
     /*!
     */
     void updateSortedFilter();
+
+    //! Apply RegEx Replace to the string, if any active in the filters.
+    /*!
+    */
+    bool applyRegExString(QDltMsg &msg,QString &text);
+
+    //! Apply RegEx Replace to the argumnets of a message, if any active in the filters.
+    /*!
+    */
+    bool applyRegExStringMsg(QDltMsg &msg);
 
 protected:
 private:

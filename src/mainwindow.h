@@ -41,6 +41,7 @@
 #include "searchtablemodel.h"
 #include "sortfilterproxymodel.h"
 #include "ui_mainwindow.h"
+#include "searchform.h"
 
 
 /**
@@ -148,6 +149,7 @@ private:
     SearchDialog *searchDlg;
     QShortcut *m_shortcut_searchnext;
     QShortcut *m_shortcut_searchprev;
+    SearchForm* searchInput;
 
     /* Export */
     ExporterDialog exporterDialog;
@@ -155,8 +157,6 @@ private:
     /* Settings dialog containing also the settings parameter itself */
     SettingsDialog *settingsDlg;
     QDltSettingsManager *settings;
-    QLineEdit *searchTextbox;
-    QComboBox *searchComboBox;
 
     /* injections */
     QString injectionAplicationId;
@@ -273,7 +273,7 @@ private:
     void controlMessage_SetTimingPackets(EcuItem* ecuitem, bool enable);
     void controlMessage_GetSoftwareVersion(EcuItem* ecuitem);
     void controlMessage_GetLogInfo(EcuItem* ecuitem);
-    void controlMessage_ReceiveControlMessage(EcuItem *ecuitem,QDltMsg &msg);
+    void controlMessage_ReceiveControlMessage(EcuItem *ecuitem, const QDltMsg &msg);
     void controlMessage_SetContext(EcuItem *ecuitem, QString apid, QString ctid,QString ctdescription,int log_level,int trace_status);
     void controlMessage_SetApplication(EcuItem *ecuitem, QString apid, QString appdescription);
     void controlMessage_Marker();
@@ -286,8 +286,8 @@ private:
     void updatePluginsECUList();
     void updatePlugins();
     void updatePlugin(PluginItem *item);
-    void contextLoadingFile(QDltMsg &msg);
-    void versionString(QDltMsg &msg);
+    void contextLoadingFile(const QDltMsg &msg);
+    void versionString(const QDltMsg &msg);
     void pluginsAutoload(QString version);
 
     void connectECU(EcuItem *ecuitem,bool force = false);
@@ -382,10 +382,10 @@ private:
     void writeDLTMessageToFile(QByteArray &bufferHeader,char*bufferPayload,quint32 bufferPayloadSize,EcuItem* ecuitem,quint32 sec=0,quint32 use=0);
 
 protected:
-    void keyPressEvent ( QKeyEvent * event );
-    void dragEnterEvent(QDragEnterEvent *event);
-    void dropEvent(QDropEvent *event);
-    void closeEvent(QCloseEvent *event);
+    void keyPressEvent ( QKeyEvent * event ) override;
+    void dragEnterEvent(QDragEnterEvent *event) override;
+    void dropEvent(QDropEvent *event) override;
+    void closeEvent(QCloseEvent *event) override;
 
 private slots:
     void reloadLogFileProgressMax(int num);
@@ -609,6 +609,9 @@ public slots:
     void onAddActionToHistory();
     void onSearchProgressChanged(bool isInProgress);
 
+    void handleImportResults(const QString &);
+    void handleExportResults(const QString &);
+
 public:
 
     /* Project configuration containing ECU/APP/Context/Filter/Plugin configuration */
@@ -630,7 +633,6 @@ public:
 
 signals:
     void dltFileLoaded(const QStringList& paths);
-
 };
 
 #endif // MAINWINDOW_H

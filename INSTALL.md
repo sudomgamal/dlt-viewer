@@ -5,7 +5,7 @@ Alexander Wenzel <Alexander.AW.Wenzel@bmw.de>
 ## Instructions for installing DLT Viewer (GUI)
 
 * Install Qt5 SDK and Qt6 SDK including Qt Creator and Microsoft Visual Studio Build Tools 2019
-* Tested with QT 5.15.2 (Windows), QT 6.7.2 (Windows), and Qt 5.12.8 (Ubuntu 20.04LTS Linux)
+* Tested with QT 5.15.2 (Windows), QT 6.7.3 (Windows), and Qt 5.15.13 (Ubuntu 24.04LTS Linux)
 * Open project BuildDltViewer.pro in Qt Creator.
 * Ensure that build options point to correct QT and MSVC.
 * Build Release in Qt Creator or via CMake (see last).
@@ -24,6 +24,11 @@ Alexander Wenzel <Alexander.AW.Wenzel@bmw.de>
 * sudo make install
 * sudo ldconfig
 * Optional: set the library path: LD_LIBRARY_PATH = .
+
+## Instructions for installing DLT Viewer (macOS)
+
+* Download and install DLTViewer from the Mac AppStore
+* https://apps.apple.com/us/app/dlt-viewer/id6648796931?mt=12
 
 ## Build DLT Viewer in Windows
 

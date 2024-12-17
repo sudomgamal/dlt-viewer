@@ -46,10 +46,12 @@ add_executable(dlt-viewer
     dltmsgqueue.cpp
     dltfileindexerthread.cpp
     dltfileindexerdefaultfilterthread.cpp
-    mcudpsocket.cpp
     sortfilterproxymodel.cpp
+    searchform.h
+    searchform.cpp
     ${UI_RESOURCES_RCC}
-    resources/dlt_viewer.rc)
+    resources/dlt_viewer.rc
+    )
 
 target_link_libraries(dlt-viewer
     qdlt

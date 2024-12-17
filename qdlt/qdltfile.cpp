@@ -262,8 +262,14 @@ bool QDltFile::updateIndex()
         qint64 file_size = files[numFile]->infile.size();
         qint64 errors_in_file  = 0;
 
+        quint8 progressNextCmdOutput=10;
         while(true)
         {
+            if( (file_size>0) && ((pos*100/file_size)>=progressNextCmdOutput))
+            {
+                qDebug() << "CI:" << pos*100/file_size << "%";
+                progressNextCmdOutput+=10;
+            }
 
             /* read buffer from file */
             buf = files[numFile]->infile.read(READ_BUF_SZ);
@@ -438,7 +444,15 @@ bool QDltFile::updateIndexFilter()
         index = 0;
     }
 
+    quint8 progressNextCmdOutput=10;
     for(int num=index;num<size();num++) {
+
+        if( (size()>0) && ((num*100/size())>=progressNextCmdOutput))
+        {
+            qDebug() << "CFI:" << num*100/size() << "%";
+            progressNextCmdOutput+=10;
+        }
+
         buf = getMsg(num);
         if(!buf.isEmpty()) {
             msg.setMsg(buf,true,dltv2Support);
@@ -487,7 +501,7 @@ void QDltFile::addFilterIndex (int index)
 }
 
 #ifdef USECOLOR
-    QColor QDltFile::checkMarker(QDltMsg &msg)
+    QColor QDltFile::checkMarker(const QDltMsg &msg)
     {
         if(!filterFlag)
         {
@@ -498,7 +512,7 @@ void QDltFile::addFilterIndex (int index)
     }
 
 #else
- QString QDltFile::checkMarker(QDltMsg &msg)
+ QString QDltFile::checkMarker(const QDltMsg &msg)
  {
      if(!filterFlag)
      {
@@ -753,4 +767,15 @@ QVector<qint64> QDltFile::getIndexFilter() const
 void QDltFile::setIndexFilter(QVector<qint64> _indexFilter)
 {
     indexFilter = _indexFilter;
+}
+
+bool QDltFile::applyRegExString(QDltMsg &msg,QString &text)
+{
+
+    return filterList.applyRegExString(msg,text);
+}
+
+bool QDltFile::applyRegExStringMsg(QDltMsg &msg)
+{    
+    return filterList.applyRegExStringMsg(msg);
 }

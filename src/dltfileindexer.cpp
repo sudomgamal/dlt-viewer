@@ -151,7 +151,6 @@ bool DltFileIndexer::index(int num)
     quint8 version=1;
     qint64 lengthOffset=2;
     qint64 storageLength=0;
-    int iPercent =0;
     errors_in_file  = 0;
     char *data = new char[DLT_FILE_INDEXER_SEG_SIZE];
 
@@ -160,6 +159,9 @@ bool DltFileIndexer::index(int num)
     emit(progressMax(100));
     emit(progress(0));
 
+    unsigned int progressCounter = 1;
+    unsigned int percent = 0;
+    unsigned long fileSize = f.size();
 
     qDebug() << "Create index: Start";
     do
@@ -326,17 +328,15 @@ bool DltFileIndexer::index(int num)
                 return false;
             }
 
-            if( 0 == (abspos%modulo) && ( file_size > 0 ) )
+            if(fileSize)
+                percent = (f.pos()*100)/fileSize;
+
+            if(percent>=progressCounter)
             {
-             iPercent = ( abspos*100 )/file_size;
-            if( true == QDltOptManager::getInstance()->issilentMode() )
-             {
-               qDebug() << "Create index:" << iPercent << "%";
-             }
-            else
-             {
-              emit(progress((iPercent)));
-             }
+                progressCounter += 1;
+                emit(progress(percent));
+                if((percent>0) && ((percent%10)==0))
+                    qDebug() << "CI:" << percent << "%";
             }
 
         } // end of for loop to read within one segment accross "number"
@@ -377,7 +377,6 @@ bool DltFileIndexer::indexFilter(QStringList filenames)
 {
     QSharedPointer<QDltMsg> msg;
     QDltFilterList filterList;
-    QTime time;
     quint64 ix = 0;
     unsigned int iPercent = 0;
 
@@ -428,24 +427,18 @@ bool DltFileIndexer::indexFilter(QStringList filenames)
         return true;
     }
 
-    unsigned int modvalue = dltFile->size()/20;
-    if (modvalue == 0) // avoid divison by zero
-    {
-        modvalue = 1;
-    }
-
     // Initialise progress bar
-    emit(progressText(QString("IF %1/%2").arg(currentRun).arg(maxRun)));
+    emit(progressText(QString("CFI %1/%2").arg(currentRun).arg(maxRun)));
     emit(progressMax(100));
     emit(progress(0));
 
     // get silent mode
     bool silentMode = !QDltOptManager::getInstance()->issilentMode();
 
-    bool hasPlugins = (activeDecoderPlugins.size() + activeViewerPlugins.size()) > 0;
-    bool hasFilters = filterList.filters.size() > 0;
+    //bool hasPlugins = (activeDecoderPlugins.size() + activeViewerPlugins.size()) > 0;
+    //bool hasFilters = filterList.filters.size() > 0;
 
-    bool useIndexerThread = hasPlugins || hasFilters;
+    //bool useIndexerThread = hasPlugins || hasFilters;
 
     DltFileIndexerThread indexerThread
             (
@@ -460,13 +453,17 @@ bool DltFileIndexer::indexFilter(QStringList filenames)
                 silentMode
             );
 
-    if(useIndexerThread)
+    /*if(useIndexerThread)
     {
         indexerThread.start(); // thread starts reading its queue
-    }
+    }*/
 
     qDebug() << "### Create filter index";
     qDebug() << "Create filter index: Start";
+
+    /* init fileprogress */
+    unsigned int progressCounter = 1;
+    emit progress(0);
 
     // Start reading messages
     for(ix=start;ix<end;ix++)
@@ -476,52 +473,45 @@ bool DltFileIndexer::indexFilter(QStringList filenames)
         if(!dltFile->getMsg(ix, *msg))
             continue; // Skip broken messages
 
-        if(true == useIndexerThread)
+        /*if(true == useIndexerThread)
         {
             indexerThread.enqueueMessage(msg, ix);
         }
         else
-        {
+        {*/
             indexerThread.processMessage(msg, ix);
-        }
+        //}
 
-        // Update progress
-        if  (ix > 0 )
-        if( 0 == (ix % modvalue) )
+        if((end-start)!=0)
+            iPercent = ( (ix-start)*100 )/(end-start);
+        if(iPercent>=progressCounter)
         {
-         iPercent = ( (ix-start)*100 )/(end-start);
-         if( ( true == QDltOptManager::getInstance()->issilentMode() ) )
-         {
-            // QDebug deb = qDebug();
-            // deb.noquote();
-            // deb << "\33[2K\rT IF Indexed:" << iPercent << "%";
-            qDebug().noquote() <<  "Create filter index:" << iPercent << "%";
-         }
-         else
-         {
-          emit(progress(iPercent));
-         }
+            progressCounter += 1;
+            emit progress(iPercent); // every 1%
+            if((iPercent>0) && ((iPercent%10)==0))
+                qDebug() << "CFI:" << iPercent << "%"; // every 10%
         }
 
         // stop if requested
         if(stopFlag)
         {
-            if(useIndexerThread)
+            /*if(useIndexerThread)
             {
                 indexerThread.requestStop();
                 indexerThread.wait();
-            }
+            }*/
 
             return false;
         }
     }
     emit(progress(100));
+    qDebug() << "CFI:" << 100 << "%";
     // destroy threads
-    if(true == useIndexerThread)
+    /*if(true == useIndexerThread)
     {
         indexerThread.requestStop();
         indexerThread.wait();
-    }
+    }*/
 
     // update performance counter
     //msecsFilterCounter = time.elapsed();
@@ -1067,7 +1057,6 @@ bool DltFileIndexer::loadIndex(QString filename, QVector<qint64> &index)
    if (false == QDltOptManager::getInstance()->issilentMode() )
      {
        emit(progressText(QString("LI %1/%2").arg(currentRun).arg(maxRun)));
-       emit(progress(0));
        emit(progressMax(100)); // should be 100
      }
    else
@@ -1075,6 +1064,10 @@ bool DltFileIndexer::loadIndex(QString filename, QVector<qint64> &index)
       qDebug().noquote() << "Load index: Start";
      }
 
+    unsigned int progressCounter = 1;
+    unsigned int percent = 0;
+    unsigned long fileSize = file.size();
+    emit(progress(0));
     do
     {
         length = file.read((char*)&value,sizeof(value));
@@ -1082,26 +1075,25 @@ bool DltFileIndexer::loadIndex(QString filename, QVector<qint64> &index)
         {
             index.append(value);
         }
-        if( 0 == (indexcount%modvalue) && ( file.size() > 0 ) )
+
+        if(fileSize)
+            percent = (file.pos()*100)/fileSize;
+
+        if(percent>=progressCounter)
         {
-         if (false == QDltOptManager::getInstance()->issilentMode() )
-          {
-           emit(progress((indexcount * 800 )/file.size()));
-          }
-        else
-          {
-          qDebug().noquote() << "Load index:" << ( indexcount * 8 *100 )/file.size() << "%";
-         }
+            progressCounter += 1;
+            emit(progress(percent));
+            if((percent>0) && ((percent%10)==0))
+              qDebug() << "LI:" << percent << "%";
         }
         indexcount++;
-
     }
     while(length==sizeof(value));
 
     // now that it is doen we have to set the 100 %
     if (false == QDltOptManager::getInstance()->issilentMode() )
       {
-        emit(progress(file.size()));
+        emit(progress(fileSize));
       }
     else
       {
