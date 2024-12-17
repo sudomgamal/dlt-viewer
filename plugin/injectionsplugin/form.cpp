@@ -23,6 +23,13 @@
 #include <QtGui>
 #include <qfiledialog.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#else
+#include <stdlib.h>
+#endif
+
+
 using namespace Injections;
 
 Form::Form(InjectionsPlugin *_plugin,QWidget *parent) :
@@ -31,6 +38,15 @@ Form::Form(InjectionsPlugin *_plugin,QWidget *parent) :
     injectionsFile("injections.csv")
 {
     ui->setupUi(this);
+#ifdef _WIN32
+    // Windows: Use CreateDirectory
+    if (!CreateDirectory((QCoreApplication::applicationDirPath() + "/injections/").toStdWString().c_str(), 0))
+    {
+        qDebug() << "Error creating folder (Windows): " << (QCoreApplication::applicationDirPath() + "/injections/");
+    }
+#else
+    system((char*)QString("mkdir -p %1").arg(QCoreApplication::applicationDirPath() + "/injections/").toStdWString().c_str());
+#endif
     plugin = _plugin;
     connect(plugin, &InjectionsPlugin::injectionsLoaded, this, &Injections::Form::on_injectionsLoaded);
     connect(plugin, &InjectionsPlugin::unloadRequested, this, &Form::on_unloadRequested);
@@ -282,6 +298,10 @@ bool Injections::Form::saveInjectionGroupToFile(InjectionGroup group)
         }
 
         qDebug() << "Injections stored";
+    }
+    else
+    {
+        qDebug() << "couldn't save injections with error:" << injectionsFile.errorString();
     }
 
     injectionsFile.close();

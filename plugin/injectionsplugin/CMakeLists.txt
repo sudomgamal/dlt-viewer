@@ -16,11 +16,11 @@
 
 
 #cmake 2.8.12 doesn't have AUTOUIC ??
-QT5_WRAP_UI( UI_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/form.ui )
+QT_WRAP_UI( UI_HEADERS ${CMAKE_CURRENT_SOURCE_DIR}/form.ui )
 
-add_library(dummycontrolplugin MODULE dummycontrolplugin.cpp
+add_library(injectionsplugin MODULE injectionsplugin.cpp
    form.cpp
    ${UI_HEADERS})
 
-target_link_libraries(dummycontrolplugin qdlt Qt5::Widgets )
-add_plugin(dummycontrolplugin)
+target_link_libraries(injectionsplugin qdlt ${QT_PREFIX}::Widgets )
+add_plugin(injectionsplugin)

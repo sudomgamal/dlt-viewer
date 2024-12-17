@@ -76,7 +76,7 @@ bool InjectionsPlugin::loadConfig(QString  filename )
     for(const QString &filename : qAsConst(csvFiles))
     {
         InjectionGroup grp;
-        grp.groupName = filename.split(".csv",QString::SkipEmptyParts,Qt::CaseInsensitive).at(0);
+        grp.groupName = filename.split(".csv",Qt::SkipEmptyParts,Qt::CaseInsensitive).at(0);
         readInjectionsFromFile(grp.injections, directory.absolutePath() + "/" + filename);
         m_injectionGroups.push_back(grp);
     }
