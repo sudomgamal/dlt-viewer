@@ -15,3 +15,5 @@ compile_commands.json
 # deb packaging directories
 debian/
 debtmp/
+.cache/
+.vscode/
