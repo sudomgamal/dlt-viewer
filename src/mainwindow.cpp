@@ -277,6 +277,14 @@ MainWindow::~MainWindow()
 
 void MainWindow::initState()
 {
+    /* Shortcut for Copy Selection Payload to Clipboard */
+    copyPayloadShortcut = new QShortcut(QKeySequence("Ctrl+P"), this);
+    connect(copyPayloadShortcut, &QShortcut::activated, this, &MainWindow::onActionMenuConfigCopyPayloadToClipboardTriggered);
+  
+    /* Shortcut for Mark/Unmark lines */
+    markShortcut = new QShortcut(QKeySequence("Ctrl+M"), this);
+    connect(markShortcut, &QShortcut::activated, this, &MainWindow::mark_unmark_lines);
+
     /* Settings */
     settingsDlg = new SettingsDialog(&qfile,this);
     settingsDlg->assertSettingsVersion();
@@ -408,6 +416,9 @@ void MainWindow::initView()
 
     /* set table size and en */
     ui->tableView->setModel(tableModel);
+
+    QHeaderView *header = ui->tableView->horizontalHeader();
+    header->installEventFilter(tableModel);
 
     /* For future use enable HTML View in Table */
     //HtmlDelegate* delegate = new HtmlDelegate();
@@ -1212,6 +1223,12 @@ bool MainWindow::openDltFile(QStringList fileNames)
         qDebug() << "Open filename error in " << __FILE__ << __LINE__;
         return false;
     }
+    /* Color of the scrollbar when dark mode is enabled */
+    if (QDltSettingsManager::UI_Colour::UI_Dark == QDltSettingsManager::getInstance()->uiColour)
+    {
+        ui->tableView->setStyleSheet("QTableView QScrollBar::vertical { background-color :#646568; }"
+                                            "QScrollBar::horizontal  { background-color :#646568; }");
+    }
     //clear search history list
     //searchHistory.clear();
     //clear all the action buttons from history
@@ -1360,7 +1377,7 @@ void MainWindow::appendDltFile(const QString &fileName)
     }
 
     /* read DLT messages and append to current output file */
-    if(!outputfile.open(QIODevice::WriteOnly|QIODevice::Append))
+    if(!outputfile.isOpen() && !outputfile.open(QIODevice::WriteOnly|QIODevice::Append))
     {
         qDebug() << "Failed opening WriteOnly" << outputfile.fileName();
         return;
@@ -1412,7 +1429,7 @@ void MainWindow::on_action_menuFile_Import_DLT_Stream_triggered()
     dlt_file_open(&importfile,fileName.toLatin1(),0);
 
     /* parse and build index of complete log file and show progress */
-    if(!outputfile.open(QIODevice::WriteOnly|QIODevice::Append))
+    if(!outputfile.isOpen() && !outputfile.open(QIODevice::WriteOnly|QIODevice::Append))
     {
         qDebug() << "Failed opening WriteOnly" << outputfile.fileName();
         return;
@@ -1455,7 +1472,7 @@ void MainWindow::on_action_menuFile_Import_DLT_Stream_with_Serial_Header_trigger
     dlt_file_open(&importfile,fileName.toLatin1(),0);
 
     /* parse and build index of complete log file and show progress */
-    if(!outputfile.open(QIODevice::WriteOnly|QIODevice::Append))
+    if(!outputfile.isOpen() && !outputfile.open(QIODevice::WriteOnly|QIODevice::Append))
     {
         qDebug() << "Failed opening WriteOnly" << outputfile.fileName();
         return;
@@ -3948,7 +3965,8 @@ void MainWindow::writeDLTMessageToFile(const QByteArray& bufferHeader, std::stri
         dlt_set_id(str.ecu, ecuitem->id.toLatin1());
 
     /* check if message is matching the filter */
-    if(!outputfile.open(QIODevice::WriteOnly|QIODevice::Append))
+    // open the outputfile, if it is not open yet
+    if(!outputfile.isOpen() && !outputfile.open(QIODevice::WriteOnly|QIODevice::Append))
     {
         qDebug() << "Failed opening WriteOnly" << outputfile.fileName();
     }
@@ -3991,7 +4009,7 @@ void MainWindow::writeDLTMessageToFile(const QByteArray& bufferHeader, std::stri
     outputfile.write(bufferHeader);
     outputfile.write(payload.data(), payload.size());
     outputfile.flush();
-    outputfile.close();
+    //outputfile.close();  // This slows down online tracing, keep open while online tracing
 }
 
 void MainWindow::read(EcuItem* ecuitem)
@@ -4599,7 +4617,7 @@ void MainWindow::controlMessage_SendControlMessage(EcuItem* ecuitem,DltMessage &
     }
 
     /* Skip the file handling, if indexer is working on the file */
-    if(!outputfile.open(QIODevice::WriteOnly|QIODevice::Append))
+    if(!outputfile.isOpen() && !outputfile.open(QIODevice::WriteOnly|QIODevice::Append))
     {
         qDebug() << "Failed opening WriteOnly" << outputfile.fileName();
         return;
@@ -4618,7 +4636,7 @@ void MainWindow::controlMessage_SendControlMessage(EcuItem* ecuitem,DltMessage &
 
         dltIndexer->unlock();
     }
-    outputfile.close();
+    //outputfile.close();  // This slows down online tracing, keep open while online tracing
 
 }
 
@@ -4674,7 +4692,7 @@ void MainWindow::controlMessage_WriteControlMessage(DltMessage &msg, QString app
     msg.standardheader->len = DLT_HTOBE_16(msg.headersize - sizeof(DltStorageHeader) + msg.datasize);
 
     /* Skip the file handling, if indexer is working on the file */
-    if(!outputfile.open(QIODevice::WriteOnly|QIODevice::Append))
+    if(!outputfile.isOpen() && !outputfile.open(QIODevice::WriteOnly|QIODevice::Append))
     {
         qDebug() << "Failed opening WriteOnly" << outputfile.fileName();
         return;
@@ -4695,7 +4713,7 @@ void MainWindow::controlMessage_WriteControlMessage(DltMessage &msg, QString app
 
         dltIndexer->unlock();
     }
-    outputfile.close();
+    //outputfile.close();  // This slows down online tracing, keep open while online tracing
 }
 
 void MainWindow::on_action_menuDLT_Get_Default_Log_Level_triggered()
@@ -6967,7 +6985,8 @@ void MainWindow::on_tableView_customContextMenuRequested(QPoint pos)
     menu.addAction(action);
 
     action = new QAction("C&opy Selection Payload to Clipboard", this);
-    connect(action, SIGNAL(triggered()), this, SLOT(onActionAenuConfigCopyPayloadToClipboardTriggered()));
+    action->setShortcut(QKeySequence("Ctrl+P"));
+    connect(action, SIGNAL(triggered()), this, SLOT(onActionMenuConfigCopyPayloadToClipboardTriggered()));
     menu.addAction(action);
 
     menu.addSeparator();
@@ -7015,6 +7034,7 @@ void MainWindow::on_tableView_customContextMenuRequested(QPoint pos)
     menu.addSeparator();
 
     action = new QAction("Mark/Unmark line(s)", this);
+    action->setShortcut(QKeySequence("Ctrl+M"));
     connect(action, SIGNAL(triggered()), this, SLOT(mark_unmark_lines()));
     menu.addAction(action);
 
@@ -7595,7 +7615,7 @@ void MainWindow::on_action_menuConfig_Copy_to_clipboard_triggered()
     exportSelection(true,false);
 }
 
-void MainWindow::onActionAenuConfigCopyPayloadToClipboardTriggered()
+void MainWindow::onActionMenuConfigCopyPayloadToClipboardTriggered()
 {
     exportSelection(true,false,QDltExporter::FormatClipboardPayloadOnly);
 }

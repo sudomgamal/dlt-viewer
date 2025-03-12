@@ -28,6 +28,7 @@
 #include <QColor>
 #include <QComboBox>
 #include <QProgressBar>
+#include <QHeaderView>
 
 #include "tablemodel.h"
 #include "settingsdialog.h"
@@ -141,6 +142,10 @@ private:
     QShortcut *m_shortcut_searchnext;
     QShortcut *m_shortcut_searchprev;
     SearchForm* searchInput;
+
+    /* Shortcuts */
+    QShortcut *copyPayloadShortcut;
+    QShortcut *markShortcut;
 
     /* Export */
     ExporterDialog exporterDialog;
@@ -466,7 +471,7 @@ private slots:
     void on_action_menuConfig_Disconnect_triggered();
     void on_action_menuConfig_Connect_triggered();
     void on_action_menuConfig_Delete_All_Contexts_triggered();
-    void onActionAenuConfigCopyPayloadToClipboardTriggered();
+    void onActionMenuConfigCopyPayloadToClipboardTriggered();
     void on_action_menuConfig_Copy_to_clipboard_triggered();
     void onActionMenuConfigCopyJiraToClipboardTriggered();
     void onActionMenuConfigCopyJiraHeadToClipboardTriggered();
