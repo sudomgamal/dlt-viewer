@@ -103,6 +103,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     target_version_string = "";
 
+    filterIsChanged = false;
+
     initState();
 
     /* Apply loaded settings */
@@ -1016,6 +1018,15 @@ void MainWindow::closeEvent(QCloseEvent *event)
     // Shall we save the updated plugin execution priorities??
 
     settingsDlg->writeSettings(this);
+    if(filterIsChanged)
+    {
+        if(QMessageBox::information(this, "DLT Viewer",
+           "You have changed the filter. Do you want to save the filter configuration?",
+           QMessageBox::Yes, QMessageBox::No) == QMessageBox::Yes)
+        {
+            on_action_menuFilter_Save_As_triggered();
+        }
+    }
     if(true == isSearchOngoing)
     {
         event->ignore();
@@ -4463,62 +4474,66 @@ void MainWindow::onSearchresultsTableSelectionChanged(const QItemSelection & sel
 
 void MainWindow::controlMessage_ReceiveControlMessage(EcuItem *ecuitem, const QDltMsg &msg)
 {
-    auto ctrlMsg = qdlt::msg::payload::parse(msg.getPayload(), msg.getEndianness() == QDlt::DltEndiannessBigEndian);
-    std::visit(overloaded{[&](const qdlt::msg::payload::GetSoftwareVersion &) {
-                              // TODO: use parsed payload
-                              // check if plugin autoload enabled and version string not already parsed
-                              if(!autoloadPluginsVersionEcus.contains(msg.getEcuid()))
-                              {
-                                  versionString(msg);
-                                  autoloadPluginsVersionEcus.append(msg.getEcuid());
-                              }
-                          },
-                          [&](const qdlt::msg::payload::GetLogInfo &payload) {
-                              if (payload.status == 8)
-                              {
-                                  ecuitem->InvalidAll();
-                              }
+    try {
+        auto ctrlMsg = qdlt::msg::payload::parse(
+                    msg.getPayload(), msg.getEndianness() == QDlt::DltEndiannessBigEndian);
+        std::visit(
+                    overloaded{
+                        [&](const qdlt::msg::payload::GetSoftwareVersion&) {
+                            // check if plugin autoload enabled and version string not already parsed
+                            if (!autoloadPluginsVersionEcus.contains(msg.getEcuid())) {
+                                versionString(msg);
+                                autoloadPluginsVersionEcus.append(msg.getEcuid());
+                            }
+                        },
+                        [&](const qdlt::msg::payload::GetLogInfo& payload) {
+                            if (payload.status == 8) {
+                                ecuitem->InvalidAll();
+                            }
 
-                              if (payload.status == 6 || payload.status == 7) {
-                                  for (const auto &app : payload.apps) {
-                                      for (const auto& ctx : app.ctxs) {
-                                          controlMessage_SetContext(ecuitem, app.id, ctx.id,
-                                          ctx.description, ctx.logLevel,
-                                          ctx.traceStatus);
-                                      }
-                                      if (payload.status == 7) {
-                                          controlMessage_SetApplication(ecuitem, app.id,
-                                          app.description);
-                                      }
-                                  }
-                              }
-                          },
-                          [&](const qdlt::msg::payload::GetDefaultLogLevel &payload) {
-                              switch (payload.status) {
-                              case 0: /* OK */
-                                  ecuitem->loglevel = payload.logLevel;
-                                  ecuitem->status = EcuItem::valid;
-                                  break;
-                              case 1: /* NOT_SUPPORTED */
-                                  ecuitem->status = EcuItem::unknown;
-                                  break;
-                              case 2: /* ERROR */
-                                  ecuitem->status = EcuItem::invalid;
-                                  break;
-                              }
-                              ecuitem->update();
-                          },
-                          [&](const qdlt::msg::payload::Timezone &payload) {
-                              controlMessage_Timezone(payload.timezone, payload.isDst);
-                          },
-                          [&](const qdlt::msg::payload::UnregisterContext &payload) {
-                              controlMessage_UnregisterContext(msg.getEcuid(), payload.appid,
-                              payload.ctxid);
-                          },
-                          [&](const qdlt::msg::payload::SetLogLevel &) {
-                              // nothing to do
-                          }},
-               ctrlMsg);
+                            if (payload.status == 6 || payload.status == 7) {
+                                for (const auto& app : payload.apps) {
+                                    for (const auto& ctx : app.ctxs) {
+                                        controlMessage_SetContext(ecuitem, app.id, ctx.id, ctx.description,
+                                        ctx.logLevel, ctx.traceStatus);
+                                    }
+                                    if (payload.status == 7) {
+                                        controlMessage_SetApplication(ecuitem, app.id, app.description);
+                                    }
+                                }
+                            }
+                        },
+                        [&](const qdlt::msg::payload::GetDefaultLogLevel& payload) {
+                            switch (payload.status) {
+                                case 0: /* OK */
+                                ecuitem->loglevel = payload.logLevel;
+                                ecuitem->status = EcuItem::valid;
+                                break;
+                                case 1: /* NOT_SUPPORTED */
+                                ecuitem->status = EcuItem::unknown;
+                                break;
+                                case 2: /* ERROR */
+                                ecuitem->status = EcuItem::invalid;
+                                break;
+                            }
+                            ecuitem->update();
+                        },
+                        [&](const qdlt::msg::payload::Timezone& payload) {
+                            controlMessage_Timezone(payload.timezone, payload.isDst);
+                        },
+                        [&](const qdlt::msg::payload::UnregisterContext& payload) {
+                            controlMessage_UnregisterContext(msg.getEcuid(), payload.appid, payload.ctxid);
+                        },
+                        [](const qdlt::msg::payload::SetLogLevel&) {
+                            // nothing to do
+                        },
+                        [](const qdlt::msg::payload::Uninteresting& payload) {
+                            qDebug() << "Received control message with id: " << payload.serviceId;
+                        }},
+                    ctrlMsg);
+    } catch (const std::exception& e) {
+        qDebug() << "Error parsing control message: " << e.what();
+    }
 }
 
 void MainWindow::controlMessage_SendControlMessage(EcuItem* ecuitem,DltMessage &msg, QString appid, QString contid)
@@ -6562,6 +6577,7 @@ void MainWindow::filterAddTable() {
         FilterItem* item = new FilterItem(0);
         project.filter->addTopLevelItem(item);
         filterDialogRead(dlg,item);
+        filterIsChanged = true;
     }
 }
 
@@ -6615,6 +6631,7 @@ void MainWindow::filterAdd()
         FilterItem* item = new FilterItem(0);
         project.filter->addTopLevelItem(item);
         filterDialogRead(dlg,item);
+        filterIsChanged = true;
     }
 }
 
@@ -6639,6 +6656,7 @@ void MainWindow::on_action_menuFilter_Save_As_triggered()
     } else {
         QMessageBox::critical(0, "DLT Viewer", "Save DLT Filter file failed!");
     }
+    filterIsChanged = false;
 }
 
 
@@ -6650,6 +6668,7 @@ void MainWindow::on_action_menuFilter_Load_triggered()
     if(!fileName.isEmpty())
     {
         openDlfFile(fileName,true);
+        filterIsChanged = false;
     }
 }
 
@@ -6661,6 +6680,7 @@ void MainWindow::on_action_menuFilter_Add_triggered() {
         FilterItem* item = new FilterItem(0);
         project.filter->addTopLevelItem(item);
         filterDialogRead(dlg,item);
+        filterIsChanged = true;
     }
 }
 
@@ -6790,6 +6810,7 @@ void MainWindow::on_action_menuFilter_Duplicate_triggered() {
             FilterItem* newitem = new FilterItem(0);
             project.filter->addTopLevelItem(newitem);
             filterDialogRead(dlg,newitem);
+            filterIsChanged = true;
         }
     }
     else {
@@ -6820,6 +6841,7 @@ void MainWindow::on_action_menuFilter_Edit_triggered()
         if(dlg.exec())
         {
             filterDialogRead(dlg,item);
+            filterIsChanged = true;
         }
     }
     else {
@@ -6837,6 +6859,7 @@ void MainWindow::on_action_menuFilter_Delete_triggered()
 
     FilterTreeWidget* filterWidget = static_cast<FilterTreeWidget*>(project.filter);
     filterWidget->deleteSelected();
+    filterIsChanged = true;
 }
 
 void MainWindow::onactionmenuFilter_SetAllActiveTriggered()
@@ -6914,6 +6937,7 @@ void MainWindow::on_action_menuFilter_Clear_all_triggered()
     /* delete complete filter list */
     project.filter->clear();
     applyConfigEnabled(true);
+    filterIsChanged = false;
 }
 
 void MainWindow::filterUpdate()
@@ -6980,28 +7004,28 @@ void MainWindow::on_tableView_customContextMenuRequested(QPoint pos)
     QMenu menu(ui->tableView);
     QAction *action;
 
-    action = new QAction("&Copy Selection to Clipboard", this);
+    action = new QAction("&Copy Selection to Clipboard", &menu);
     connect(action, SIGNAL(triggered()), this, SLOT(on_action_menuConfig_Copy_to_clipboard_triggered()));
     menu.addAction(action);
 
-    action = new QAction("C&opy Selection Payload to Clipboard", this);
+    action = new QAction("C&opy Selection Payload to Clipboard", &menu);
     action->setShortcut(QKeySequence("Ctrl+P"));
     connect(action, SIGNAL(triggered()), this, SLOT(onActionMenuConfigCopyPayloadToClipboardTriggered()));
     menu.addAction(action);
 
     menu.addSeparator();
 
-    action = new QAction("Copy Selection for &Jira to Clipboard", this);
+    action = new QAction("Copy Selection for &Jira to Clipboard", &menu);
     connect(action, SIGNAL(triggered()), this, SLOT(onActionMenuConfigCopyJiraToClipboardTriggered()));
     menu.addAction(action);
 
-    action = new QAction("Copy Selection for J&ira (+Head) to Clipboard", this);
+    action = new QAction("Copy Selection for J&ira (+Head) to Clipboard", &menu);
     connect(action, SIGNAL(triggered()), this, SLOT(onActionMenuConfigCopyJiraHeadToClipboardTriggered()));
     menu.addAction(action);
 
     menu.addSeparator();
 
-    action = new QAction("&Export...", this);
+    action = new QAction("&Export...", &menu);
     if(qfile.sizeFilter() <= 0)
     {
         action->setEnabled(false);
@@ -7010,45 +7034,44 @@ void MainWindow::on_tableView_customContextMenuRequested(QPoint pos)
     {
         connect(action, SIGNAL(triggered()), this, SLOT(on_actionExport_triggered()));
     }
-
     menu.addAction(action);
 
     menu.addSeparator();
 
-    action = new QAction("&Filter Add", this);
+    action = new QAction("&Filter Add", &menu);
     connect(action, SIGNAL(triggered()), this, SLOT(filterAddTable()));
     menu.addAction(action);
 
     menu.addSeparator();
 
-    action = new QAction("Load Filter(s)...", this);
+    action = new QAction("Load Filter(s)...", &menu);
     connect(action, SIGNAL(triggered()), this, SLOT(on_action_menuFilter_Load_triggered()));
     menu.addAction(action);
 
     menu.addSeparator();
 
-    action = new QAction("Resize columns to fit", this);
+    action = new QAction("Resize columns to fit", &menu);
     connect(action, SIGNAL(triggered()), ui->tableView, SLOT(resizeColumnsToContents()));
     menu.addAction(action);
 
     menu.addSeparator();
 
-    action = new QAction("Mark/Unmark line(s)", this);
+    action = new QAction("Mark/Unmark line(s)", &menu);
     action->setShortcut(QKeySequence("Ctrl+M"));
     connect(action, SIGNAL(triggered()), this, SLOT(mark_unmark_lines()));
     menu.addAction(action);
 
-    action = new QAction("Unmark all lines", this);
+    action = new QAction("Unmark all lines", &menu);
     connect(action, SIGNAL(triggered()), this, SLOT(unmark_all_lines()));
     menu.addAction(action);
 
     menu.addSeparator();
 
-    action = new QAction("Filter Index Start", this);
+    action = new QAction("Filter Index Start", &menu);
     connect(action, SIGNAL(triggered()), this, SLOT(filterIndexStart()));
     menu.addAction(action);
 
-    action = new QAction("Filter Index End", this);
+    action = new QAction("Filter Index End", &menu);
     connect(action, SIGNAL(triggered()), this, SLOT(filterIndexEnd()));
     menu.addAction(action);
 
@@ -7502,6 +7525,7 @@ void MainWindow::dropEvent(QDropEvent *event)
         }
         if(!importFilenames.isEmpty())
         {
+            on_action_menuFile_Clear_triggered();
             QDltImporter *importerThread = new QDltImporter(&outputfile,importFilenames);
             connect(importerThread, &QDltImporter::progress,    this, &MainWindow::progress);
             connect(importerThread, &QDltImporter::resultReady, this, &MainWindow::handleImportResults);
@@ -7636,6 +7660,7 @@ void MainWindow::on_action_menuFilter_Append_Filters_triggered()
         tr("Load DLT Filter file"), workingDirectory.getDlfDirectory(), tr("DLT Filter Files (*.dlf);;All files (*.*)"));
 
     openDlfFile(fileName,false);
+    filterIsChanged = true;
 }
 
 int MainWindow::nearest_line(int line)
