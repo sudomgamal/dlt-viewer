@@ -73,9 +73,9 @@
 #include "jumptodialog.h"
 #include "fieldnames.h"
 #include "tablemodel.h"
-#include "sortfilterproxymodel.h"
 #include "qdltoptmanager.h"
 #include "qdltctrlmsg.h"
+#include <qdltmsgwrapper.h>
 #include "ecutree.h"
 
 
@@ -190,10 +190,6 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionSort_By_Timestamp->setChecked(ui->checkBoxSortByTimestamp->isChecked());
     ui->actionProject->setChecked(ui->dockWidgetContents->isVisible());
     ui->actionSearch_Results->setChecked(ui->dockWidgetSearchIndex->isVisible());
-
-    /* what for do we need the next 2 lines ? */
-    draw_timer.setSingleShot (true);
-    connect(&draw_timer, SIGNAL(timeout()), this, SLOT(draw_timeout()));
 
     if ( true == (bool) settings->StartupMinimized )
     {
@@ -824,6 +820,7 @@ void MainWindow::initFileHandling()
         for ( const auto& filename : QDltOptManager::getInstance()->getPcapFiles() )
         {
             QDltImporter importer(&outputfile);
+            importer.setPcapPorts(settings->importerPcapPorts);
             importer.dltIpcFromPCAP(filename);
         }
         if(QDltOptManager::getInstance()->isCommandlineMode())
@@ -1134,6 +1131,7 @@ void MainWindow::on_action_menuFile_Open_triggered()
     {
         on_action_menuFile_Clear_triggered();
         QDltImporter *importerThread = new QDltImporter(&outputfile,pcapFileNames);
+        importerThread->setPcapPorts(settings->importerPcapPorts);
         connect(importerThread, &QDltImporter::progress,    this, &MainWindow::progress);
         connect(importerThread, &QDltImporter::resultReady, this, &MainWindow::handleImportResults);
         connect(importerThread, &QDltImporter::finished,    importerThread, &QObject::deleteLater);
@@ -1144,6 +1142,7 @@ void MainWindow::on_action_menuFile_Open_triggered()
     {
         on_action_menuFile_Clear_triggered();
         QDltImporter *importerThread = new QDltImporter(&outputfile,mf4FileNames);
+        importerThread->setPcapPorts(settings->importerPcapPorts);
         connect(importerThread, &QDltImporter::progress,    this, &MainWindow::progress);
         connect(importerThread, &QDltImporter::resultReady, this, &MainWindow::handleImportResults);
         connect(importerThread, &QDltImporter::finished,    importerThread, &QObject::deleteLater);
@@ -1512,6 +1511,7 @@ void MainWindow::on_actionAppend_triggered()
     if(!importFilenames.isEmpty())
     {
         QDltImporter *importerThread = new QDltImporter(&outputfile,importFilenames);
+        importerThread->setPcapPorts(settings->importerPcapPorts);
         connect(importerThread, &QDltImporter::progress,    this, &MainWindow::progress);
         connect(importerThread, &QDltImporter::resultReady, this, &MainWindow::handleImportResults);
         connect(importerThread, &QDltImporter::finished,    importerThread, &QObject::deleteLater);
@@ -1570,15 +1570,31 @@ void MainWindow::exportSelection(bool ascii = true,bool file = false,QDltExporte
     disconnect(&exporter,SIGNAL(clipboard(QString)),this,SLOT(clipboard(QString)));
 }
 
-void MainWindow::exportSelection_searchTable(QDltExporter::DltExportFormat format = QDltExporter::FormatClipboard)
+void MainWindow::exportSelection_searchTable(QDltExporter::DltExportFormat format = QDltExporter::FormatClipboard, const QString& fileName)
 {
     const QModelIndexList list = ui->tableView_SearchIndex->selectionModel()->selectedRows();
+    QModelIndexList allRows;
+    for (int row = 0; row < ui->tableView_SearchIndex->model()->rowCount(); ++row) {
+        QModelIndex idx = ui->tableView_SearchIndex->model()->index(row, 0);
+        allRows.append(idx);
+    }
 
     // Clear the selection from main table.
     ui->tableView->selectionModel()->clear();
 
+    // Determine which rows to process based on operation type and selection
+    QModelIndexList rowsToProcess;
+    
+    if (!fileName.trimmed().isEmpty()) {
+        // File export operation - always export all rows
+        rowsToProcess = allRows;
+    } else {
+        // Clipboard operation - use selected rows only
+        rowsToProcess = list;
+    }
+
     // Convert the index from search table to main table entry...
-    foreach(QModelIndex index,list)
+    foreach(QModelIndex index, rowsToProcess)
     {
         int position = index.row();
         unsigned long entry;
@@ -1602,7 +1618,8 @@ void MainWindow::exportSelection_searchTable(QDltExporter::DltExportFormat forma
 
     filterUpdate(); // update filters of qfile before starting Exporting for RegEx operation
 
-    QDltExporter exporter(&qfile,"",&pluginManager,format,QDltExporter::SelectionSelected,&finallist,project.settings->automaticTimeSettings,project.settings->utcOffset,project.settings->dst,QDltOptManager::getInstance()->getDelimiter(),QDltOptManager::getInstance()->getSignature());
+    QString exportFile = fileName.trimmed();
+    QDltExporter exporter(&qfile,exportFile,&pluginManager,format,QDltExporter::SelectionSelected,&finallist,project.settings->automaticTimeSettings,project.settings->utcOffset,project.settings->dst,QDltOptManager::getInstance()->getDelimiter(),QDltOptManager::getInstance()->getSignature());
     connect(&exporter,SIGNAL(clipboard(QString)),this,SLOT(clipboard(QString)));
     exporter.exportMessages();
     disconnect(&exporter,SIGNAL(clipboard(QString)),this,SLOT(clipboard(QString)));
@@ -2036,6 +2053,10 @@ void MainWindow::reloadLogFileFinishIndex()
         ui->lineEditFilterEnd->setText(QString("%1").arg(qfile.size()-1));
     else
         ui->lineEditFilterEnd->setText(QString("0"));
+
+    if (settings->autoScroll) {
+        ui->tableView->scrollToBottom();
+    }
 }
 
 void MainWindow::reloadLogFileFinishFilter()
@@ -2319,14 +2340,6 @@ void MainWindow::applySettings()
         case(FieldNames::ArgCount):  m_searchresultsTable->setColumnHidden(col, true);break;
         default:m_searchresultsTable->setColumnHidden(col, !(FieldNames::getColumnShown((FieldNames::Fields)col,settings)));break;
         }
-    }
-    if ( settings->RefreshRate > 0 )
-    {
-        draw_interval = 1000 / settings->RefreshRate;
-    }
-    else
-    {
-        draw_interval = 1000 / DEFAULT_REFRESH_RATE;
     }
 
     // disable or enable filter cache
@@ -3262,6 +3275,7 @@ void MainWindow::on_tabExplore_fileOpenRequested(const QString &path)
     } else if (path.endsWith(".pcap", Qt::CaseInsensitive)) {
         on_action_menuFile_Clear_triggered();
         QDltImporter* importerThread = new QDltImporter(&outputfile, path);
+        importerThread->setPcapPorts(settings->importerPcapPorts);
         connect(importerThread, &QDltImporter::progress, this, &MainWindow::progress);
         connect(importerThread, &QDltImporter::resultReady, this, &MainWindow::handleImportResults);
         connect(importerThread, &QDltImporter::finished, importerThread, &QObject::deleteLater);
@@ -3270,6 +3284,7 @@ void MainWindow::on_tabExplore_fileOpenRequested(const QString &path)
     } else if (path.endsWith(".mf4", Qt::CaseInsensitive)) {
         on_action_menuFile_Clear_triggered();
         QDltImporter* importerThread = new QDltImporter(&outputfile, path);
+        importerThread->setPcapPorts(settings->importerPcapPorts);
         connect(importerThread, &QDltImporter::progress, this, &MainWindow::progress);
         connect(importerThread, &QDltImporter::resultReady, this, &MainWindow::handleImportResults);
         connect(importerThread, &QDltImporter::finished, importerThread, &QObject::deleteLater);
@@ -3289,6 +3304,7 @@ void MainWindow::on_tabExplore_fileAppendRequested(const QString& path) {
     else if (path.endsWith(".pcap", Qt::CaseInsensitive) ||
              path.endsWith(".mf4", Qt::CaseInsensitive)) {
         QDltImporter* importerThread = new QDltImporter(&outputfile, path);
+        importerThread->setPcapPorts(settings->importerPcapPorts);
         connect(importerThread, &QDltImporter::progress, this, &MainWindow::progress);
         connect(importerThread, &QDltImporter::resultReady, this, &MainWindow::handleImportResults);
         connect(importerThread, &QDltImporter::finished, importerThread, &QObject::deleteLater);
@@ -3305,6 +3321,7 @@ void MainWindow::on_tabExplore_filesOpenRequest(const QStringList& dltPaths) {
 
 void MainWindow::on_tabExplore_filesAppendRequest(const QStringList& mf4AndPcapPaths) {
     QDltImporter* importerThread = new QDltImporter(&outputfile, mf4AndPcapPaths);
+    importerThread->setPcapPorts(settings->importerPcapPorts);
     connect(importerThread, &QDltImporter::progress, this, &MainWindow::progress);
     connect(importerThread, &QDltImporter::resultReady, this, &MainWindow::handleImportResults);
     connect(importerThread, &QDltImporter::finished, importerThread, &QObject::deleteLater);
@@ -3468,10 +3485,17 @@ void MainWindow::connectAll()
         EcuItem *ecuitem = (EcuItem*)project.ecu->topLevelItem(num);
         connectECU(ecuitem);
     }
+
+    // periodically update table view to account for the new incoming messages
+    const int drawInterval = (settings->RefreshRate > 0) ? 1000 / settings->RefreshRate
+                                                         : 1000 / DEFAULT_REFRESH_RATE;
+    drawTimer.start(drawInterval);
+    connect(&drawTimer, &QTimer::timeout, this, &MainWindow::drawUpdatedView);
 }
 
 void MainWindow::disconnectAll()
 {
+    drawTimer.stop();
     for(int num = 0; num < project.ecu->topLevelItemCount (); num++)
     {
         EcuItem *ecuitem = (EcuItem*)project.ecu->topLevelItem(num);
@@ -4336,9 +4360,6 @@ void MainWindow::updateIndex()
      }
     }
 
-    if (!draw_timer.isActive())
-        draw_timer.start(draw_interval);
-
     if(oldsize!=qfile.size())
     {
         // only run through viewer plugins, if new messages are added
@@ -4348,18 +4369,10 @@ void MainWindow::updateIndex()
             item->updateFileFinish();
         }
     }
-
 }
-
-void MainWindow::draw_timeout()
-{
-    drawUpdatedView();
-}
-
 
 void MainWindow::drawUpdatedView()
 {
-
     statusByteErrorsReceived->setText(QString("Recv Errors: %L1").arg(totalByteErrorsRcvd));
     statusBytesReceived->setText(QString("Recv: %L1").arg(totalBytesRcvd));
     statusSyncFoundReceived->setText(QString("Sync found: %L1").arg(totalSyncFoundRcvd));
@@ -4371,7 +4384,6 @@ void MainWindow::drawUpdatedView()
     if(settings->autoScroll) {
         ui->tableView->scrollToBottom();
     }
-
 }
 
 void MainWindow::onTableViewSelectionChanged(const QItemSelection & selected, const QItemSelection & deselected)
@@ -4851,256 +4863,107 @@ void MainWindow::on_action_menuDLT_Get_Log_Info_triggered()
                              QString("No ECU selected in configuration!"));
 }
 
-void MainWindow::controlMessage_SetLogLevel(EcuItem* ecuitem, QString app, QString con,int log_level)
-{
-    DltMessage msg;
+void MainWindow::controlMessage_SetLogLevel(EcuItem* ecuitem, QString app, QString con,
+                                            int log_level) {
+    DltServiceSetLogLevel req;
+    req.service_id = DLT_SERVICE_ID_SET_LOG_LEVEL;
+    dlt_set_id(req.apid, app.toLatin1());
+    dlt_set_id(req.ctid, con.toLatin1());
+    req.log_level = log_level;
+    dlt_set_id(req.com, "remo");
 
-    /* initialise new message */
-    dlt_message_init(&msg,0);
-
-    /* prepare payload */
-    msg.datasize = sizeof(DltServiceSetLogLevel);
-    if (msg.databuffer) free(msg.databuffer);
-    msg.databuffer = (uint8_t *) malloc(msg.datasize);
-    DltServiceSetLogLevel *req;
-    req = (DltServiceSetLogLevel*) msg.databuffer;
-    req->service_id = DLT_SERVICE_ID_SET_LOG_LEVEL;
-    dlt_set_id(req->apid,app.toLatin1());
-    dlt_set_id(req->ctid,con.toLatin1());
-    req->log_level = log_level;
-    dlt_set_id(req->com,"remo");
-
-    /* send message */
-    controlMessage_SendControlMessage(ecuitem,msg,QString(""),QString(""));
-
-    /* free message */
-    dlt_message_free(&msg,0);
+    QDltMsgWrapper msgWrapper(std::move(req));
+    controlMessage_SendControlMessage(ecuitem, msgWrapper.getMessage(), "", "");
 }
 
-void MainWindow::controlMessage_SetDefaultLogLevel(EcuItem* ecuitem, int status)
-{
-    DltMessage msg;
+void MainWindow::controlMessage_SetDefaultLogLevel(EcuItem* ecuitem, int status) {
+    DltServiceSetDefaultLogLevel req;
+    req.service_id = DLT_SERVICE_ID_SET_DEFAULT_LOG_LEVEL;
+    req.log_level = status;
+    dlt_set_id(req.com, "remo");
 
-    /* initialise new message */
-    dlt_message_init(&msg,0);
-
-    /* prepare payload */
-    msg.datasize = sizeof(DltServiceSetDefaultLogLevel);
-    if (msg.databuffer) free(msg.databuffer);
-    msg.databuffer = (uint8_t *) malloc(msg.datasize);
-    DltServiceSetDefaultLogLevel *req;
-    req = (DltServiceSetDefaultLogLevel*) msg.databuffer;
-    req->service_id = DLT_SERVICE_ID_SET_DEFAULT_LOG_LEVEL;
-    req->log_level = status;
-    dlt_set_id(req->com,"remo");
-
-    /* send message */
-    controlMessage_SendControlMessage(ecuitem,msg,QString(""),QString(""));
-
-    /* free message */
-    dlt_message_free(&msg,0);
+    QDltMsgWrapper msgWrapper(std::move(req));
+    controlMessage_SendControlMessage(ecuitem, msgWrapper.getMessage(), "", "");
 }
 
-void MainWindow::controlMessage_SetTraceStatus(EcuItem* ecuitem,QString app, QString con,int status)
-{
-    DltMessage msg;
+void MainWindow::controlMessage_SetTraceStatus(EcuItem* ecuitem, QString app, QString con,
+                                               int status) {
+    DltServiceSetLogLevel req;
+    req.service_id = DLT_SERVICE_ID_SET_TRACE_STATUS;
+    dlt_set_id(req.apid, app.toLatin1());
+    dlt_set_id(req.ctid, con.toLatin1());
+    req.log_level = status;
+    dlt_set_id(req.com, "remo");
 
-    /* initialise new message */
-    dlt_message_init(&msg,0);
-
-    /* prepare payload */
-    msg.datasize = sizeof(DltServiceSetLogLevel);
-    if (msg.databuffer) free(msg.databuffer);
-    msg.databuffer = (uint8_t *) malloc(msg.datasize);
-    DltServiceSetLogLevel *req;
-    req = (DltServiceSetLogLevel*) msg.databuffer;
-    req->service_id = DLT_SERVICE_ID_SET_TRACE_STATUS;
-    dlt_set_id(req->apid,app.toLatin1());
-    dlt_set_id(req->ctid,con.toLatin1());
-    req->log_level = status;
-    dlt_set_id(req->com,"remo");
-
-    /* send message */
-    controlMessage_SendControlMessage(ecuitem,msg,QString(""),QString(""));
-
-    /* free message */
-    dlt_message_free(&msg,0);
-
+    QDltMsgWrapper msgWrapper(std::move(req));
+    controlMessage_SendControlMessage(ecuitem, msgWrapper.getMessage(), "", "");
 }
 
-void MainWindow::controlMessage_SetDefaultTraceStatus(EcuItem* ecuitem, int status)
-{
-    DltMessage msg;
+void MainWindow::controlMessage_SetDefaultTraceStatus(EcuItem* ecuitem, int status) {
+    DltServiceSetDefaultLogLevel req;
+    req.service_id = DLT_SERVICE_ID_SET_DEFAULT_TRACE_STATUS;
+    req.log_level = status;
+    dlt_set_id(req.com, "remo");
 
-    /* initialise new message */
-    dlt_message_init(&msg,0);
-
-    /* prepare payload */
-    msg.datasize = sizeof(DltServiceSetDefaultLogLevel);
-    if (msg.databuffer) free(msg.databuffer);
-    msg.databuffer = (uint8_t *) malloc(msg.datasize);
-    DltServiceSetDefaultLogLevel *req;
-    req = (DltServiceSetDefaultLogLevel*) msg.databuffer;
-    req->service_id = DLT_SERVICE_ID_SET_DEFAULT_TRACE_STATUS;
-    req->log_level = status;
-    dlt_set_id(req->com,"remo");
-
-    /* send message */
-    controlMessage_SendControlMessage(ecuitem,msg,QString(""),QString(""));
-
-    /* free message */
-    dlt_message_free(&msg,0);
+    QDltMsgWrapper msgWrapper(std::move(req));
+    controlMessage_SendControlMessage(ecuitem, msgWrapper.getMessage(), "", "");
 }
 
 void MainWindow::controlMessage_SetVerboseMode(EcuItem* ecuitem, int verbosemode)
 {
-    DltMessage msg;
+    DltServiceSetVerboseMode req;
+    req.service_id = DLT_SERVICE_ID_SET_VERBOSE_MODE;
+    req.new_status = verbosemode;
 
-    /* initialise new message */
-    dlt_message_init(&msg,0);
-
-    /* prepare payload */
-    msg.datasize = sizeof(DltServiceSetVerboseMode);
-    if (msg.databuffer) free(msg.databuffer);
-    msg.databuffer = (uint8_t *) malloc(msg.datasize);
-    DltServiceSetVerboseMode *req;
-    req = (DltServiceSetVerboseMode*) msg.databuffer;
-    req->service_id = DLT_SERVICE_ID_SET_VERBOSE_MODE;
-    req->new_status = verbosemode;
-    //dlt_set_id(req->com,"remo");
-
-    /* send message */
-    controlMessage_SendControlMessage(ecuitem,msg,QString(""),QString(""));
-
-    /* free message */
-    dlt_message_free(&msg,0);
+    QDltMsgWrapper msgWrapper(std::move(req));
+    controlMessage_SendControlMessage(ecuitem, msgWrapper.getMessage(), "", "");
 }
 
-void MainWindow::controlMessage_SetTimingPackets(EcuItem* ecuitem, bool enable)
-{
-    DltMessage msg;
-    uint8_t new_status=(enable?1:0);
+void MainWindow::controlMessage_SetTimingPackets(EcuItem* ecuitem, bool enable) {
+    DltServiceSetVerboseMode req;
+    req.service_id = DLT_SERVICE_ID_SET_TIMING_PACKETS;
+    req.new_status = (enable ? 1 : 0);
 
-    /* initialise new message */
-    dlt_message_init(&msg,0);
-
-    /* prepare payload of data */
-    msg.datasize = sizeof(DltServiceSetVerboseMode);
-    if (msg.databuffer) free(msg.databuffer);
-    msg.databuffer = (uint8_t *) malloc(msg.datasize);
-    DltServiceSetVerboseMode *req;
-    req = (DltServiceSetVerboseMode*) msg.databuffer;
-    req->service_id = DLT_SERVICE_ID_SET_TIMING_PACKETS;
-    req->new_status = new_status;
-
-    /* send message */
-    controlMessage_SendControlMessage(ecuitem,msg,QString(""),QString(""));
-
-    /* free message */
-    dlt_message_free(&msg,0);
+    QDltMsgWrapper msgWrapper(std::move(req));
+    controlMessage_SendControlMessage(ecuitem, msgWrapper.getMessage(), "", "");
 }
 
-void MainWindow::controlMessage_GetLogInfo(EcuItem* ecuitem)
-{
-    DltMessage msg;
+void MainWindow::controlMessage_GetLogInfo(EcuItem* ecuitem) {
+    DltServiceGetLogInfoRequest req;
+    req.service_id = DLT_SERVICE_ID_GET_LOG_INFO;
+    req.options = 7;
+    dlt_set_id(req.apid, "");
+    dlt_set_id(req.ctid, "");
+    dlt_set_id(req.com, "remo");
 
-    /* initialise new message */
-    dlt_message_init(&msg,0);
-
-    /* prepare payload */
-    msg.datasize = sizeof(DltServiceGetLogInfoRequest);
-    if (msg.databuffer) free(msg.databuffer);
-    msg.databuffer = (uint8_t *) malloc(msg.datasize);
-    DltServiceGetLogInfoRequest *req;
-    req = (DltServiceGetLogInfoRequest*) msg.databuffer;
-    req->service_id = DLT_SERVICE_ID_GET_LOG_INFO;
-
-    req->options = 7;
-
-    dlt_set_id(req->apid, "");
-    dlt_set_id(req->ctid, "");
-
-    dlt_set_id(req->com,"remo");
-
-    /* send message */
-    controlMessage_SendControlMessage(ecuitem,msg,QString(""),QString(""));
-
-    /* free message */
-    dlt_message_free(&msg,0);
+    QDltMsgWrapper msgWrapper(std::move(req));
+    controlMessage_SendControlMessage(ecuitem, msgWrapper.getMessage(), "", "");
 }
 
-void MainWindow::controlMessage_GetSoftwareVersion(EcuItem* ecuitem)
-{
-    DltMessage msg;
+void MainWindow::controlMessage_GetSoftwareVersion(EcuItem* ecuitem) {
+    DltServiceGetSoftwareVersion req;
+    req.service_id = DLT_SERVICE_ID_GET_SOFTWARE_VERSION;
 
-    /* initialise new message */
-    dlt_message_init(&msg,0);
-
-    /* prepare payload */
-    msg.datasize = sizeof(DltServiceGetSoftwareVersion);
-    if (msg.databuffer) free(msg.databuffer);
-    msg.databuffer = (uint8_t *) malloc(msg.datasize);
-    DltServiceGetSoftwareVersion *req;
-    req = (DltServiceGetSoftwareVersion*) msg.databuffer;
-    req->service_id = DLT_SERVICE_ID_GET_SOFTWARE_VERSION;
-
-    /* send message */
-    controlMessage_SendControlMessage(ecuitem,msg,QString(""),QString(""));
-
-    /* free message */
-    dlt_message_free(&msg,0);
+    QDltMsgWrapper msgWrapper(std::move(req));
+    controlMessage_SendControlMessage(ecuitem, msgWrapper.getMessage(), "", "");
 }
 
-void MainWindow::ControlServiceRequest(EcuItem* ecuitem, int service_id )
-{
-    DltMessage msg;
-
-    /* initialise new message */
-    dlt_message_init(&msg,0);
-
-    /* prepare payload of data */
-    msg.datasize = sizeof(uint32_t);
-    if (msg.databuffer) free(msg.databuffer);
-    msg.databuffer = (uint8_t *) malloc(msg.datasize);
-    uint32_t sid = service_id;
-    memcpy(msg.databuffer,&sid,sizeof(sid));
-
-    /* send message */
-    controlMessage_SendControlMessage(ecuitem,msg,QString(""),QString(""));
-
-    /* free message */
-    dlt_message_free(&msg,0);
+void MainWindow::ControlServiceRequest(EcuItem* ecuitem, uint32_t serviceId) {
+    QDltMsgWrapper msgWrapper(std::move(serviceId));
+    controlMessage_SendControlMessage(ecuitem, msgWrapper.getMessage(), "", "");
 }
 
-void MainWindow::controlMessage_Marker()
-{
-    DltMessage msg;
+void MainWindow::controlMessage_Marker() {
+    DltServiceMarker resp;
+    resp.service_id = DLT_SERVICE_ID_MARKER;
+    resp.status = DLT_SERVICE_RESPONSE_OK;
 
-    /* initialise new message */
-    dlt_message_init(&msg,0);
-
-    /* prepare payload */
-    msg.datasize = sizeof(DltServiceMarker);
-    if (msg.databuffer) free(msg.databuffer);
-    msg.databuffer = (uint8_t *) malloc(msg.datasize);
-    DltServiceMarker *resp;
-    resp = (DltServiceMarker*) msg.databuffer;
-    resp->service_id = DLT_SERVICE_ID_MARKER;
-    resp->status = DLT_SERVICE_RESPONSE_OK;
-
-    /* send message */
-    controlMessage_WriteControlMessage(msg,QString(""),QString(""));
-
-    /* free message */
-    dlt_message_free(&msg,0);
+    QDltMsgWrapper msgWrapper(std::move(resp));
+    controlMessage_WriteControlMessage(msgWrapper.getMessage(), "", "");
 }
 
 void MainWindow::SendInjection(EcuItem* ecuitem)
 {
-    unsigned int serviceID = 0;
-    unsigned int size = 0;
-    bool ok = true;
-
     qDebug() << "DLT SendInjection" << injectionAplicationId << injectionContextId << injectionServiceId << __LINE__;
 
     if (ecuitem->interfacetype == EcuItem::INTERFACETYPE_SERIAL_ASCII)
@@ -5116,64 +4979,26 @@ void MainWindow::SendInjection(EcuItem* ecuitem)
         return;
     }
 
-    serviceID = (unsigned int)injectionServiceId.toInt(&ok, 0);
-
-    if ( (serviceID < DLT_SERVICE_ID_CALLSW_CINJECTION) || (serviceID==0) )
-    {
-        qDebug() << "Wrong range of service id: " << serviceID << ", it has to be > " << DLT_SERVICE_ID_CALLSW_CINJECTION;
+    bool ok = true;
+    unsigned int serviceID = (unsigned int)injectionServiceId.toInt(&ok, 0);
+    if ((serviceID < DLT_SERVICE_ID_CALLSW_CINJECTION) || (serviceID == 0)) {
+        qDebug() << "Wrong range of service id: " << serviceID << ", it has to be > "
+                 << DLT_SERVICE_ID_CALLSW_CINJECTION;
         return;
     }
 
-    DltMessage msg;
     QByteArray hexData;
+    // prepare injection data
+    if (injectionDataBinary) {
+        hexData = QByteArray::fromHex(injectionData.toLatin1());
+    } else {
+        hexData = injectionData.toUtf8();
+    }
+    const std::vector<uint8_t> dataBytes(hexData.begin(), hexData.end());
 
-    /* initialise new message */
-    dlt_message_init(&msg,0);
-
-    /* prepare payload of data */
-    if(true == injectionDataBinary)
-        {
-            hexData = QByteArray::fromHex(injectionData.toLatin1());
-            size = hexData.size();
-        }
-    else
-        {
-            size = (injectionData.toUtf8().size() );
-        }
-
-    msg.datasize = 4 + 4 + size;
-
-    if (msg.databuffer)
-       {
-            free(msg.databuffer);
-       }
-    msg.databuffer = (uint8_t *) malloc(msg.datasize);
-
-    if (NULL == msg.databuffer)
-        {
-            qDebug() << "Error could not allocate memory for msg data buffer" << "LINE" << __LINE__ << __FILE__;
-            return;
-        }
-
-    memcpy(msg.databuffer  , &serviceID,sizeof(serviceID));
-    memcpy(msg.databuffer+4, &size, sizeof(size));
-
-    if(true == injectionDataBinary)
-        {
-            memcpy(msg.databuffer+8,hexData.data(),hexData.size());
-        }
-    else
-        {
-            memcpy(msg.databuffer+8, injectionData.toUtf8(), size);
-        }
-
-    qDebug() << "Send" << injectionData.toUtf8() << "of size" << size << "string:" << injectionData.toUtf8() <<  "size" << injectionData.toUtf8().size();// << "LINE" << __LINE__;
-
-    /* send message */
-    controlMessage_SendControlMessage(ecuitem,msg,injectionAplicationId,injectionContextId);
-
-    /* free message */
-    dlt_message_free(&msg,0);
+    QDltMsgWrapper msgWrapper(serviceID, dataBytes);
+    controlMessage_SendControlMessage(ecuitem, msgWrapper.getMessage(), injectionAplicationId,
+                                      injectionContextId);
 }
 
 void MainWindow::on_action_menuDLT_Store_Config_triggered()
@@ -5297,47 +5122,21 @@ void MainWindow:: disconnectAllEcuSignal()
     disconnectAll();
 }
 
-void MainWindow::sendInjection(int index,QString applicationId,QString contextId,int serviceId,QByteArray data)
-{
-    EcuItem* ecuitem = (EcuItem*) project.ecu->topLevelItem(index);
+void MainWindow::sendInjection(int index, QString applicationId, QString contextId, int serviceId,
+                               QByteArray data) {
+    EcuItem* ecuitem = (EcuItem*)project.ecu->topLevelItem(index);
 
     injectionAplicationId = applicationId;
     injectionContextId = contextId;
 
-    if(ecuitem)
-    {
+    if (ecuitem) {
+        unsigned int serviceID = serviceId;
 
-        unsigned int serviceID;
-        unsigned int size;
-
-        serviceID = serviceId;
-
-        if ((DLT_SERVICE_ID_CALLSW_CINJECTION<= serviceID) && (serviceID!=0))
-        {
-            DltMessage msg;
-
-            /* initialise new message */
-            dlt_message_init(&msg,0);
-
-            // Request parameter:
-            // data_length uint32
-            // data        uint8[]
-
-            /* prepare payload of data */
-            size = (data.size());
-            msg.datasize = 4 + 4 + size;
-            if (msg.databuffer) free(msg.databuffer);
-            msg.databuffer = (uint8_t *) malloc(msg.datasize);
-
-            memcpy(msg.databuffer  , &serviceID,sizeof(serviceID));
-            memcpy(msg.databuffer+4, &size, sizeof(size));
-            memcpy(msg.databuffer+8, data.constData(), data.size());
-
-            /* send message */
-            controlMessage_SendControlMessage(ecuitem,msg,injectionAplicationId,injectionContextId);
-
-            /* free message */
-            dlt_message_free(&msg,0);
+        if ((DLT_SERVICE_ID_CALLSW_CINJECTION <= serviceID) && (serviceID != 0)) {
+            const std::vector<uint8_t> dataBytes(data.begin(), data.end());
+            QDltMsgWrapper msgWrapper(serviceID, dataBytes);
+            controlMessage_SendControlMessage(ecuitem, msgWrapper.getMessage(),
+                                              injectionAplicationId, injectionContextId);
         }
     }
 }
@@ -6050,51 +5849,7 @@ void MainWindow::stateChangedIP(QAbstractSocket::SocketState socketState)
         }
     }
 }
-/*
-void MainWindow::stateChangedUDP(QAbstractSocket::SocketState socketState)
-{
-    // signal emited when connection state changed
-    qDebug() << "stateChangedUDP" << socketState << __LINE__ << __FILE__;
-    // find socket which emited signal
-    for(int num = 0; num < project.ecu->topLevelItemCount (); num++)
-    {
-        EcuItem *ecuitem = (EcuItem*)project.ecu->topLevelItem(num);
-        if( ecuitem && ecuitem->socket == sender())
-        {
-            // update ECU item
-            ecuitem->update();
 
-            if (socketState==QAbstractSocket::ConnectedState)
-            {
-                // send new default log level to ECU, if selected in dlg
-                if (ecuitem->updateDataIfOnline)
-                {
-                    sendUpdates(ecuitem);
-                }
-            }
-
-            switch(socketState)
-            {
-            case QAbstractSocket::UnconnectedState:
-                pluginManager.stateChanged(num,QDltConnection::QDltConnectionOffline,ecuitem->getHostname());
-                break;
-            case QAbstractSocket::ConnectingState:
-                pluginManager.stateChanged(num,QDltConnection::QDltConnectionConnecting,ecuitem->getHostname());
-                break;
-            case QAbstractSocket::ConnectedState:
-                pluginManager.stateChanged(num,QDltConnection::QDltConnectionOnline,ecuitem->getHostname());
-                break;
-            case QAbstractSocket::ClosingState:
-                pluginManager.stateChanged(num,QDltConnection::QDltConnectionOffline,ecuitem->getHostname());
-                break;
-            default:
-                pluginManager.stateChanged(num,QDltConnection::QDltConnectionOffline,ecuitem->getHostname());
-                break;
-            }
-        }
-    }
-}
-*/
 //----------------------------------------------------------------------------
 // Search functionalities
 //----------------------------------------------------------------------------
@@ -7224,6 +6979,11 @@ void MainWindow::on_tableView_SearchIndex_customContextMenuRequested(QPoint pos)
     menu.addAction(action);
 
     menu.addSeparator();
+    action = new QAction("Export all rows in DLT Format...", this);
+    connect(action, &QAction::triggered, this, &MainWindow::onActionMenuConfigSearchTableExportDltTriggered);
+    menu.addAction(action);
+
+    menu.addSeparator();
 
     /* show popup menu */
     menu.exec(globalPos);
@@ -7247,6 +7007,20 @@ void MainWindow::onActionMenuConfigSearchTableCopyJiraToClipboardTriggered()
 void MainWindow::onActionMenuConfigSearchTableCopyJiraHeadToClipboardTriggered()
 {
     exportSelection_searchTable(QDltExporter::FormatClipboardJiraTableHead);
+}
+
+void MainWindow::onActionMenuConfigSearchTableExportDltTriggered()
+{
+    QString fileName = QFileDialog::getSaveFileName(
+        this,
+        tr("Export Search Results as DLT"),
+        workingDirectory.getExportDirectory(),
+        tr("DLT Files (*.dlt);;All files (*.*)")
+    );
+    if (fileName.isEmpty())
+        return;
+    workingDirectory.setExportDirectory(QFileInfo(fileName).absolutePath());
+    exportSelection_searchTable(QDltExporter::FormatDlt, fileName);
 }
 
 void MainWindow::keyPressEvent ( QKeyEvent * event )
@@ -7410,6 +7184,7 @@ void MainWindow::dropEvent(QDropEvent *event)
         {
             on_action_menuFile_Clear_triggered();
             QDltImporter *importerThread = new QDltImporter(&outputfile,importFilenames);
+            importerThread->setPcapPorts(settings->importerPcapPorts);
             connect(importerThread, &QDltImporter::progress,    this, &MainWindow::progress);
             connect(importerThread, &QDltImporter::resultReady, this, &MainWindow::handleImportResults);
             connect(importerThread, &QDltImporter::finished,    importerThread, &QObject::deleteLater);
@@ -8153,6 +7928,7 @@ void MainWindow::openSupportedFile(const QString& path)
         break;
     case 3: {
         QDltImporter* importerThread = new QDltImporter(&outputfile, path);
+        importerThread->setPcapPorts(settings->importerPcapPorts);
         connect(importerThread, &QDltImporter::progress, this, &MainWindow::progress);
         connect(importerThread, &QDltImporter::resultReady, this, &MainWindow::handleImportResults);
         connect(importerThread, &QDltImporter::finished, importerThread, &QObject::deleteLater);
@@ -8161,6 +7937,7 @@ void MainWindow::openSupportedFile(const QString& path)
     } break;
     case 4: {
         QDltImporter* importerThread = new QDltImporter(&outputfile, path);
+        importerThread->setPcapPorts(settings->importerPcapPorts);
         connect(importerThread, &QDltImporter::progress, this, &MainWindow::progress);
         connect(importerThread, &QDltImporter::resultReady, this, &MainWindow::handleImportResults);
         connect(importerThread, &QDltImporter::finished, importerThread, &QObject::deleteLater);
