@@ -39,19 +39,7 @@ Form::Form(InjectionsPlugin *_plugin,QWidget *parent) :
 {
     ui->setupUi(this);
 #ifdef _WIN32
-    // Windows: Use CreateDirectory
-    auto dir = QDir::toNativeSeparators(QCoreApplication::applicationDirPath() + "/injections/").toUtf8().data();
-#if _MSC_VER == 1943
-    if (!CreateDirectory((QCoreApplication::applicationDirPath() + "/injections/").toStdWString().c_str(), 0))
-    {
-        qDebug() << "Error creating folder (Windows): " << (QCoreApplication::applicationDirPath() + "/injections/");
-    }
-#else
-    if (!CreateDirectory((LPCSTR)(dir), 0))
-    {
-        qDebug() << "Error creating folder:" << dir;
-    }
-#endif
+    //FIXME:handle the windows folder creation correctly
 #else
     system((char*)QString("mkdir -p %1").arg(QCoreApplication::applicationDirPath() + "/injections/").toStdWString().c_str());
 #endif
